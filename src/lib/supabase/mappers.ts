@@ -30,6 +30,9 @@ export type ComplaintRow = {
   priority: ComplaintPriority | null;
   action_plan: string | null;
   action_plan_updated_at: string | null;
+  picked_up_by: string | null;
+  picked_up_at: string | null;
+  resolved_by: string | null;
 };
 
 export function rowToComplaint(row: ComplaintRow): Complaint {
@@ -55,5 +58,8 @@ export function rowToComplaint(row: ComplaintRow): Complaint {
     priority: row.priority ?? undefined,
     actionPlan: row.action_plan ?? undefined,
     actionPlanUpdatedAt: row.action_plan_updated_at ?? undefined,
+    pickedUpBy: row.picked_up_by ?? undefined,
+    pickedUpAt: row.picked_up_at ?? undefined,
+    resolvedBy: row.resolved_by ?? undefined,
   };
 }

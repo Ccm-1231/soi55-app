@@ -118,30 +118,44 @@ export function TicketCard({
             </button>
           )}
           {complaint.status === "in_progress" && onAdvance && (
-            <div className="flex gap-1.5">
-              {onRevert && (
-                <button
-                  onClick={() => onRevert(complaint.id)}
-                  aria-label="Move back to New"
-                  title="Move back to New"
-                  className={UNDO_BUTTON_CLASS}
-                >
-                  ↩
-                </button>
+            <>
+              {complaint.pickedUpBy && (
+                <p className="mb-1.5 font-body text-[11px] text-ink-text/55">
+                  Picked up by <span className="font-medium text-ink-text/80">{complaint.pickedUpBy}</span>
+                </p>
               )}
-              <button
-                onClick={() => onAdvance(complaint.id)}
-                className="flex-1 rounded-[2px] bg-pandan px-3 py-1.5 font-body text-[11px] font-medium uppercase tracking-wider text-cream transition-colors hover:bg-pandan-dim focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pandan cursor-pointer"
-              >
-                Mark resolved
-              </button>
-            </div>
+              <div className="flex gap-1.5">
+                {onRevert && (
+                  <button
+                    onClick={() => onRevert(complaint.id)}
+                    aria-label="Move back to New"
+                    title="Move back to New"
+                    className={UNDO_BUTTON_CLASS}
+                  >
+                    ↩
+                  </button>
+                )}
+                <button
+                  onClick={() => onAdvance(complaint.id)}
+                  className="flex-1 rounded-[2px] bg-pandan px-3 py-1.5 font-body text-[11px] font-medium uppercase tracking-wider text-cream transition-colors hover:bg-pandan-dim focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pandan cursor-pointer"
+                >
+                  Mark resolved
+                </button>
+              </div>
+            </>
           )}
           {complaint.status === "resolved" && (
             <div className="flex items-center justify-between gap-1.5">
-              <p className="font-body text-[11px] text-pandan-dim">
-                ✓ Resolved {complaint.resolvedAt ? <TimeAgo iso={complaint.resolvedAt} /> : ""}
-              </p>
+              <div>
+                <p className="font-body text-[11px] text-pandan-dim">
+                  ✓ Resolved {complaint.resolvedAt ? <TimeAgo iso={complaint.resolvedAt} /> : ""}
+                </p>
+                {complaint.resolvedBy && (
+                  <p className="font-body text-[11px] text-ink-text/55">
+                    by <span className="font-medium text-ink-text/80">{complaint.resolvedBy}</span>
+                  </p>
+                )}
+              </div>
               {onRevert && (
                 <button
                   onClick={() => onRevert(complaint.id)}

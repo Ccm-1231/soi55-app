@@ -11,6 +11,7 @@ import { OutletsProvider, type Outlet } from "@/lib/outlets";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { DownloadButton } from "@/components/DownloadButton";
 import { canManage, roleOf } from "@/lib/roles";
+import { actorLabelFor, logActivity } from "@/lib/activity";
 
 const COLUMNS: { status: ComplaintStatus; title: string; accent: string }[] = [
   { status: "new", title: "New", accent: "text-chili" },
@@ -42,6 +43,7 @@ export default function BoardPage() {
   const [loading, setLoading] = useState(true);
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [showManageLink, setShowManageLink] = useState(false);
+  const [actorLabel, setActorLabel] = useState("unknown");
 
   useEffect(() => {
     const supabase = createClient();
@@ -53,6 +55,7 @@ export default function BoardPage() {
       setComplaints(((complaintsRes.data as ComplaintRow[] | null) ?? []).map(rowToComplaint));
       setOutlets((outletsRes.data as Outlet[] | null) ?? []);
       setShowManageLink(canManage(roleOf(userRes.user?.app_metadata)));
+      setActorLabel(actorLabelFor(userRes.user));
       setLoading(false);
     });
   }, []);
@@ -88,16 +91,34 @@ export default function BoardPage() {
     const next = current && NEXT_STATUS[current.status];
     if (!next) return;
 
-    const resolvedAt = next === "resolved" ? new Date().toISOString() : current?.resolvedAt;
+    const now = new Date().toISOString();
+    const resolvedAt = next === "resolved" ? now : current?.resolvedAt;
+    const pickedUpBy = next === "in_progress" ? actorLabel : current?.pickedUpBy;
+    const pickedUpAt = next === "in_progress" ? now : current?.pickedUpAt;
+    const resolvedBy = next === "resolved" ? actorLabel : current?.resolvedBy;
+
     setComplaints((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: next, resolvedAt } : c))
+      prev.map((c) =>
+        c.id === id ? { ...c, status: next, resolvedAt, pickedUpBy, pickedUpAt, resolvedBy } : c
+      )
     );
 
     const supabase = createClient();
     await supabase
       .from("complaints")
-      .update({ status: next, resolved_at: resolvedAt ?? null })
+      .update({
+        status: next,
+        resolved_at: resolvedAt ?? null,
+        picked_up_by: pickedUpBy ?? null,
+        picked_up_at: pickedUpAt ?? null,
+        resolved_by: resolvedBy ?? null,
+      })
       .eq("ticket_number", id);
+
+    logActivity(supabase, actorLabel, "advance_status", id, {
+      from: current?.status,
+      to: next,
+    });
   }
 
   async function revert(id: string) {
@@ -106,15 +127,32 @@ export default function BoardPage() {
     if (!prev) return;
 
     const resolvedAt = prev === "resolved" ? current?.resolvedAt : undefined;
+    const pickedUpBy = current?.status === "in_progress" ? undefined : current?.pickedUpBy;
+    const pickedUpAt = current?.status === "in_progress" ? undefined : current?.pickedUpAt;
+    const resolvedBy = current?.status === "resolved" ? undefined : current?.resolvedBy;
+
     setComplaints((prevList) =>
-      prevList.map((c) => (c.id === id ? { ...c, status: prev, resolvedAt } : c))
+      prevList.map((c) =>
+        c.id === id ? { ...c, status: prev, resolvedAt, pickedUpBy, pickedUpAt, resolvedBy } : c
+      )
     );
 
     const supabase = createClient();
     await supabase
       .from("complaints")
-      .update({ status: prev, resolved_at: resolvedAt ?? null })
+      .update({
+        status: prev,
+        resolved_at: resolvedAt ?? null,
+        picked_up_by: pickedUpBy ?? null,
+        picked_up_at: pickedUpAt ?? null,
+        resolved_by: resolvedBy ?? null,
+      })
       .eq("ticket_number", id);
+
+    logActivity(supabase, actorLabel, "revert_status", id, {
+      from: current?.status,
+      to: prev,
+    });
   }
 
   function actionPlanSaved(id: string, actionPlan: string, updatedAt: string) {

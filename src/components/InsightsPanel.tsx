@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { TimeAgo } from "./TimeAgo";
+import { createClient } from "@/lib/supabase/client";
+import { actorLabelFor, logActivity } from "@/lib/activity";
 
 type Insight = {
   summary: string;
@@ -40,6 +42,9 @@ export function InsightsPanel({
       if (!res.ok) throw new Error(body.error ?? "Failed to generate");
       setInsight(body.insight);
       onGenerated?.();
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      logActivity(supabase, actorLabelFor(data.user), "insight_generated", null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
     } finally {

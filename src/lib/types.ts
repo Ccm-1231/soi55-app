@@ -39,6 +39,9 @@ export type Complaint = SurveyAnswers & {
   priority?: ComplaintPriority;
   actionPlan?: string;
   actionPlanUpdatedAt?: string;
+  pickedUpBy?: string;
+  pickedUpAt?: string;
+  resolvedBy?: string;
 };
 
 export const SOURCE_LABEL: Record<ComplaintSource, string> = {

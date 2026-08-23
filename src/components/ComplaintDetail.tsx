@@ -5,6 +5,7 @@ import { StarRating } from "./StarRating";
 import { Complaint, COMPARED_LABEL, RETURN_LABEL, SOURCE_LABEL } from "@/lib/types";
 import { useOutletName } from "@/lib/outlets";
 import { createClient } from "@/lib/supabase/client";
+import { actorLabelFor, logActivity } from "@/lib/activity";
 import { TimeAgo } from "./TimeAgo";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -45,6 +46,10 @@ export function ComplaintDetail({
       setSavedAt(updatedAt);
       setJustSaved(true);
       onActionPlanSaved?.(c.id, actionPlan.trim(), updatedAt);
+      const { data } = await supabase.auth.getUser();
+      logActivity(supabase, actorLabelFor(data.user), "action_plan_saved", c.id, {
+        preview: actionPlan.trim().slice(0, 140),
+      });
       setTimeout(() => setJustSaved(false), 1500);
     }
   }
