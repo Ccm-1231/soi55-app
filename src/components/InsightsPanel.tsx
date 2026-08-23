@@ -63,14 +63,14 @@ export function InsightsPanel({
     <div className="mx-5 mb-6 rounded-[3px] border border-rail-line bg-rail p-5 sm:mx-8">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl uppercase tracking-wide text-cream">
-          ✨ AI Insights
+          ✨ Insights
         </h2>
         <button
           onClick={generate}
           disabled={generating}
           className="rounded-[2px] bg-chili px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-cream transition-colors hover:bg-chili-dim disabled:opacity-50 cursor-pointer"
         >
-          {generating ? "Analyzing…" : insight ? "Regenerate" : "Generate summary"}
+          {generating ? "Analyzing…" : insight ? "Refresh" : "Generate summary"}
         </button>
       </div>
 

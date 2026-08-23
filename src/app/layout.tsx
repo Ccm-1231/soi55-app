@@ -24,7 +24,7 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: "Soi 55 Thai Kitchen — Complaint Rail",
+  title: "Soi 55 Thai Kitchen — Blackwolf Board",
   description: "Log, track, and follow up on customer complaints across every Soi 55 location.",
 };
 

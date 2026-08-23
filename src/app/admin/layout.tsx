@@ -32,7 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               Soi 55 Thai Kitchen
             </p>
             <h1 className="font-display text-3xl uppercase tracking-wide text-cream sm:text-4xl">
-              Manage
+              Admin
             </h1>
           </div>
           <div className="flex items-center gap-2.5">
