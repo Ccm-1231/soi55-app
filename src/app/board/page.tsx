@@ -10,6 +10,7 @@ import { Complaint, ComplaintStatus } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { rowToComplaint, type ComplaintRow } from "@/lib/supabase/mappers";
 import { OutletsProvider, type Outlet } from "@/lib/outlets";
+import { InsightsPanel } from "@/components/InsightsPanel";
 
 const COLUMNS: { status: ComplaintStatus; title: string; accent: string }[] = [
   { status: "new", title: "New", accent: "text-chili" },
@@ -53,6 +54,15 @@ export default function BoardPage() {
         ? complaints
         : complaints.filter((c) => c.locationSlug === locationFilter),
     [complaints, locationFilter]
+  );
+
+  const totalCounts = useMemo(
+    () => ({
+      new: complaints.filter((c) => c.status === "new").length,
+      in_progress: complaints.filter((c) => c.status === "in_progress").length,
+      resolved: complaints.filter((c) => c.status === "resolved").length,
+    }),
+    [complaints]
   );
 
   async function advance(id: string) {
@@ -160,6 +170,12 @@ export default function BoardPage() {
           </div>
         </div>
       </header>
+
+      {!loading && (
+        <div className="pt-6">
+          <InsightsPanel counts={totalCounts} />
+        </div>
+      )}
 
       {loading && (
         <p className="px-5 py-6 font-body text-[12px] text-muted sm:px-8">Loading complaints…</p>
