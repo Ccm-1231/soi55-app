@@ -85,11 +85,7 @@ export default async function OutletPosterPage(props: { params: Promise<{ slug: 
           />
         </div>
 
-        <p className="mt-[10mm] font-display text-[16mm] uppercase tracking-wide text-cream">
-          {outlet.name}
-        </p>
-
-        <div className="mt-[8mm] flex flex-col items-center gap-[3mm] rounded-[3mm] border border-dashed border-cream/40 px-[10mm] py-[5mm]">
+        <div className="mt-[10mm] mb-[14mm] flex flex-col items-center gap-[3mm] rounded-[3mm] border border-dashed border-cream/40 px-[10mm] py-[5mm]">
           <p className="text-center font-body text-[6.5mm] font-semibold text-cream">
             🎁 Get RM20 OFF your next visit
           </p>
@@ -97,10 +93,6 @@ export default async function OutletPosterPage(props: { params: Promise<{ slug: 
             📱 Stand a chance to win an Apple iPad!
           </p>
         </div>
-
-        <p className="mt-auto mb-[14mm] font-body text-[4.5mm] tracking-wide text-cream/70">
-          {submitUrl.replace(/^https?:\/\//, "")}
-        </p>
       </div>
     </div>
   );
