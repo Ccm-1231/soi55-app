@@ -6,7 +6,6 @@ import { generateCouponCode, generateDrawEntryNumber } from "@/lib/rewards";
 import { timeAgo } from "@/lib/time";
 import { useLocale } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
-import type { ComplaintRow } from "@/lib/supabase/mappers";
 import type { DishRow, SurveyQuestionRow } from "@/lib/survey";
 
 export function SubmitFlow({
@@ -35,38 +34,36 @@ export function SubmitFlow({
     const coupon = generateCouponCode();
     const draw = generateDrawEntryNumber();
 
-    const { data, error: insertError } = await supabase
-      .from("complaints")
-      .insert({
-        location_slug: locationSlug,
-        source: "self_submit",
-        description: values.changeRequest,
-        guest_name: values.guestName || null,
-        guest_contact: values.guestContact || null,
-        food_rating: values.foodRating ?? null,
-        service_rating: values.serviceRating ?? null,
-        value_rating: values.valueRating ?? null,
-        compared_to_previous: values.comparedToPrevious ?? null,
-        return_likelihood: values.returnLikelihood ?? null,
-        dishes_ordered: values.dishesOrdered,
-        additional_notes: values.additionalNotes || null,
-        coupon_code: coupon,
-        draw_entry_number: draw,
+    const { data, error: rpcError } = await supabase
+      .rpc("submit_complaint", {
+        p_location_slug: locationSlug,
+        p_source: "self_submit",
+        p_description: values.changeRequest,
+        p_guest_name: values.guestName || null,
+        p_guest_contact: values.guestContact || null,
+        p_food_rating: values.foodRating ?? null,
+        p_service_rating: values.serviceRating ?? null,
+        p_value_rating: values.valueRating ?? null,
+        p_compared_to_previous: values.comparedToPrevious ?? null,
+        p_return_likelihood: values.returnLikelihood ?? null,
+        p_dishes_ordered: values.dishesOrdered,
+        p_additional_notes: values.additionalNotes || null,
+        p_coupon_code: coupon,
+        p_draw_entry_number: draw,
       })
-      .select()
-      .single<ComplaintRow>();
+      .single<{ ticket_number: string; submitted_at: string }>();
 
     setSubmitting(false);
 
-    if (insertError || !data) {
+    if (rpcError || !data) {
       setError("Something went wrong sending your feedback. Please try again.");
       return;
     }
 
     setTicketId(data.ticket_number);
     setSubmittedAt(data.submitted_at);
-    setCouponCode(data.coupon_code);
-    setDrawEntry(data.draw_entry_number);
+    setCouponCode(coupon);
+    setDrawEntry(draw);
   }
 
   if (ticketId && submittedAt && couponCode && drawEntry) {
