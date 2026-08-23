@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { ChangePasswordButton } from "@/components/ChangePasswordButton";
 
 const TABS = [
   { href: "/admin/outlets", label: "Outlets" },
@@ -42,6 +43,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               ← Board
             </Link>
+            <ChangePasswordButton />
             <button
               onClick={signOut}
               className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-muted transition-colors hover:text-cream cursor-pointer"

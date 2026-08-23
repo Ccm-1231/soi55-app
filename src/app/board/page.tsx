@@ -10,6 +10,7 @@ import { rowToComplaint, type ComplaintRow } from "@/lib/supabase/mappers";
 import { OutletsProvider, type Outlet } from "@/lib/outlets";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { DownloadButton } from "@/components/DownloadButton";
+import { ChangePasswordButton } from "@/components/ChangePasswordButton";
 import { canManage, roleOf } from "@/lib/roles";
 import { actorLabelFor, logActivity } from "@/lib/activity";
 
@@ -175,7 +176,7 @@ export default function BoardPage() {
           <div>
             <p className="font-body text-[11px] uppercase tracking-[0.2em] text-muted">Soi 55 Thai Kitchen</p>
             <h1 className="font-display text-3xl uppercase tracking-wide text-cream sm:text-4xl">
-              Blackwolf Board
+              Customer Review Board
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
@@ -200,6 +201,7 @@ export default function BoardPage() {
                 Admin
               </Link>
             )}
+            <ChangePasswordButton />
             <button
               onClick={signOut}
               className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-muted transition-colors hover:text-cream cursor-pointer"
