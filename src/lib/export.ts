@@ -17,8 +17,19 @@ function outletNameFor(slug: string, outlets: { slug: string; name: string }[]):
   return outlets.find((o) => o.slug === slug)?.name ?? slug;
 }
 
+const PRIORITY_RANK: Record<string, number> = { red: 0, yellow: 1, green: 2 };
+
+/** High -> medium -> low priority first; unclassified tickets sort last. */
+function sortByPriority(complaints: Complaint[]): Complaint[] {
+  return [...complaints].sort((a, b) => {
+    const rankA = a.priority ? PRIORITY_RANK[a.priority] : 3;
+    const rankB = b.priority ? PRIORITY_RANK[b.priority] : 3;
+    return rankA - rankB;
+  });
+}
+
 function rowsFor(complaints: Complaint[], outlets: { slug: string; name: string }[]) {
-  return complaints.map((c) => ({
+  return sortByPriority(complaints).map((c) => ({
     Ticket: `#${c.id}`,
     Outlet: outletNameFor(c.locationSlug, outlets),
     Status: STATUS_LABEL[c.status],
@@ -91,7 +102,7 @@ export async function exportToPdf(
   doc.setFontSize(9);
   doc.text(`Generated ${new Date().toLocaleString()}`, 14, 21);
 
-  const rows = complaints.map((c) => [
+  const rows = sortByPriority(complaints).map((c) => [
     `#${c.id}`,
     outletNameFor(c.locationSlug, outlets),
     STATUS_LABEL[c.status],
