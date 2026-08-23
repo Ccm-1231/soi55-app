@@ -17,6 +17,13 @@ const COLUMNS: { status: ComplaintStatus; title: string; accent: string }[] = [
   { status: "resolved", title: "Resolved", accent: "text-pandan" },
 ];
 
+const PRIORITY_RANK: Record<string, number> = { red: 0, yellow: 1, green: 2 };
+function byPriority(a: Complaint, b: Complaint): number {
+  const rankA = a.priority ? PRIORITY_RANK[a.priority] : 3;
+  const rankB = b.priority ? PRIORITY_RANK[b.priority] : 3;
+  return rankA - rankB;
+}
+
 const NEXT_STATUS: Partial<Record<ComplaintStatus, ComplaintStatus>> = {
   new: "in_progress",
   in_progress: "resolved",
@@ -173,7 +180,7 @@ export default function BoardPage() {
         <main className="flex-1 px-5 py-6 sm:px-8">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {COLUMNS.map((col) => {
-              const items = visible.filter((c) => c.status === col.status);
+              const items = visible.filter((c) => c.status === col.status).sort(byPriority);
               return (
                 <section key={col.status} className="flex flex-col gap-3">
                   <div className="flex items-baseline gap-2 border-b border-rail-line pb-2">
