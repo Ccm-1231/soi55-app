@@ -1,5 +1,7 @@
 export type ComplaintStatus = "new" | "in_progress" | "resolved";
 
+export type ComplaintPriority = "red" | "yellow" | "green";
+
 export type ComplaintSource = "self_submit" | "in_person" | "phone_text" | "online_review";
 
 export type ComparedToPrevious = "better" | "same" | "worse" | "first_visit";
@@ -34,6 +36,9 @@ export type Complaint = SurveyAnswers & {
   guestContact?: string;
   submittedAt: string;
   resolvedAt?: string;
+  priority?: ComplaintPriority;
+  actionPlan?: string;
+  actionPlanUpdatedAt?: string;
 };
 
 export const SOURCE_LABEL: Record<ComplaintSource, string> = {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateInsight } from "@/lib/gemini";
+import { generateStructuredInsight } from "@/lib/gemini";
 import type { ComplaintRow } from "@/lib/supabase/mappers";
 
 async function requireStaff() {
@@ -66,7 +66,7 @@ export async function POST() {
     ]
       .filter(Boolean)
       .join(", ");
-    return `- [${c.status}] ${outlet}${ratings ? ` (${ratings})` : ""}: "${c.description}"`;
+    return `- #${c.ticket_number} [${c.status}] ${outlet}${ratings ? ` (${ratings})` : ""}: "${c.description}"`;
   });
 
   const prompt = `You are analyzing customer feedback for a Thai restaurant chain called Soi 55 with multiple outlets.
@@ -76,19 +76,30 @@ Here is the current ticket status count:
 - In progress: ${counts.in_progress}
 - Resolved: ${counts.resolved}
 
-Here are the individual feedback tickets (most recent first, status in brackets, outlet, star ratings if given, then the guest's comment):
+Here are the individual feedback tickets (most recent first, ticket number, status in brackets, outlet, star ratings if given, then the guest's comment):
 ${lines.join("\n")}
 
-Write a short operational briefing for the restaurant owner, in plain text (no markdown headers, no asterisks), around 120-180 words, covering:
+Respond with JSON matching the schema. For "summary": write a short operational briefing for the restaurant owner, in plain text (no markdown headers, no asterisks), around 120-180 words, covering:
 1. A one-line summary of the current ticket volume/status.
 2. Which ONE outlet needs the most urgent attention right now, and why (based on complaint volume, severity, or low ratings).
 3. Whether FOOD or SERVICE issues are the bigger recurring problem across the tickets, with a brief concrete reason.
 4. One clear, actionable recommendation for what to prioritize first.
+Be direct and specific — reference actual outlet names and issues from the data, not generic advice.
 
-Be direct and specific — reference actual outlet names and issues from the data, not generic advice.`;
+For "priorities": classify EVERY ticket number listed above into "red" (urgent — safety/hygiene risk, very upset guest, repeated issue, or low ratings), "yellow" (moderate — real issue but not urgent), or "green" (minor — small gripe, already resolved well, or a mostly positive review). Every ticket number must appear exactly once, as a 4-digit string WITHOUT the "#" prefix (e.g. "0248", not "#0248").`;
 
   try {
-    const summary = await generateInsight(prompt);
+    const { summary, priorities } = await generateStructuredInsight(prompt);
+
+    await Promise.all(
+      priorities.map((p) =>
+        supabase
+          .from("complaints")
+          .update({ priority: p.priority })
+          .eq("ticket_number", p.ticket_number.replace(/^#/, ""))
+      )
+    );
+
     const { data: saved, error } = await supabase
       .from("insights")
       .insert({ summary: summary.trim(), counts })

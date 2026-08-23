@@ -11,8 +11,10 @@ type Insight = {
 
 export function InsightsPanel({
   counts,
+  onGenerated,
 }: {
   counts: { new: number; in_progress: number; resolved: number };
+  onGenerated?: () => void;
 }) {
   const [insight, setInsight] = useState<Insight | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +39,7 @@ export function InsightsPanel({
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Failed to generate");
       setInsight(body.insight);
+      onGenerated?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
     } finally {
@@ -89,8 +92,8 @@ export function InsightsPanel({
         </div>
       ) : (
         <p className="font-body text-[12px] text-muted">
-          No AI summary yet. Click &ldquo;Generate summary&rdquo; to get a priority briefing based
-          on current tickets.
+          No AI summary yet. Click &ldquo;Generate summary&rdquo; to get a priority briefing and
+          red/yellow/green labels on every ticket below.
         </p>
       )}
     </div>

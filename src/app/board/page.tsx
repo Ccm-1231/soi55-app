@@ -4,13 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TicketCard } from "@/components/TicketCard";
-import { Modal } from "@/components/Modal";
-import { ComplaintForm, ComplaintFormValues } from "@/components/ComplaintForm";
 import { Complaint, ComplaintStatus } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { rowToComplaint, type ComplaintRow } from "@/lib/supabase/mappers";
 import { OutletsProvider, type Outlet } from "@/lib/outlets";
 import { InsightsPanel } from "@/components/InsightsPanel";
+import { exportToExcel, exportToPdf } from "@/lib/export";
 
 const COLUMNS: { status: ComplaintStatus; title: string; accent: string }[] = [
   { status: "new", title: "New", accent: "text-chili" },
@@ -34,7 +33,7 @@ export default function BoardPage() {
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationFilter, setLocationFilter] = useState<string>("all");
-  const [showLogModal, setShowLogModal] = useState(false);
+  const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -47,6 +46,15 @@ export default function BoardPage() {
       setLoading(false);
     });
   }, []);
+
+  async function refreshComplaints() {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("complaints")
+      .select("*")
+      .order("submitted_at", { ascending: false });
+    setComplaints(((data as ComplaintRow[] | null) ?? []).map(rowToComplaint));
+  }
 
   const visible = useMemo(
     () =>
@@ -99,24 +107,10 @@ export default function BoardPage() {
       .eq("ticket_number", id);
   }
 
-  async function logComplaint(values: ComplaintFormValues) {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("complaints")
-      .insert({
-        location_slug: values.locationSlug,
-        source: values.source,
-        description: values.description,
-        guest_name: values.guestName || null,
-        guest_contact: values.guestContact || null,
-      })
-      .select()
-      .single<ComplaintRow>();
-
-    if (data) {
-      setComplaints((prev) => [rowToComplaint(data), ...prev]);
-    }
-    setShowLogModal(false);
+  function actionPlanSaved(id: string, actionPlan: string, updatedAt: string) {
+    setComplaints((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, actionPlan, actionPlanUpdatedAt: updatedAt } : c))
+    );
   }
 
   async function signOut() {
@@ -124,6 +118,16 @@ export default function BoardPage() {
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  }
+
+  async function handleExport(format: "excel" | "pdf") {
+    setExporting(format);
+    try {
+      if (format === "excel") await exportToExcel(visible, outlets);
+      else await exportToPdf(visible, outlets);
+    } finally {
+      setExporting(null);
+    }
   }
 
   return (
@@ -136,7 +140,7 @@ export default function BoardPage() {
               Complaint Rail
             </h1>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <select
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
@@ -150,10 +154,18 @@ export default function BoardPage() {
               ))}
             </select>
             <button
-              onClick={() => setShowLogModal(true)}
-              className="rounded-[2px] bg-turmeric px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-ink transition-colors hover:brightness-95 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-turmeric"
+              onClick={() => handleExport("excel")}
+              disabled={exporting !== null}
+              className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-cream transition-colors hover:bg-rail disabled:opacity-50 cursor-pointer"
             >
-              + Log a complaint
+              {exporting === "excel" ? "Exporting…" : "⬇ Excel"}
+            </button>
+            <button
+              onClick={() => handleExport("pdf")}
+              disabled={exporting !== null}
+              className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-cream transition-colors hover:bg-rail disabled:opacity-50 cursor-pointer"
+            >
+              {exporting === "pdf" ? "Exporting…" : "⬇ PDF"}
             </button>
             <Link
               href="/admin"
@@ -173,7 +185,7 @@ export default function BoardPage() {
 
       {!loading && (
         <div className="pt-6">
-          <InsightsPanel counts={totalCounts} />
+          <InsightsPanel counts={totalCounts} onGenerated={refreshComplaints} />
         </div>
       )}
 
@@ -201,7 +213,13 @@ export default function BoardPage() {
                       </p>
                     )}
                     {items.map((c) => (
-                      <TicketCard key={c.id} complaint={c} onAdvance={advance} onRevert={revert} />
+                      <TicketCard
+                        key={c.id}
+                        complaint={c}
+                        onAdvance={advance}
+                        onRevert={revert}
+                        onActionPlanSaved={actionPlanSaved}
+                      />
                     ))}
                   </div>
                 </section>
@@ -209,17 +227,6 @@ export default function BoardPage() {
             })}
           </div>
         </main>
-
-        {showLogModal && (
-          <Modal title="Log a complaint" onClose={() => setShowLogModal(false)}>
-            <ComplaintForm
-              variant="manual"
-              submitLabel="Add to board"
-              locations={outlets}
-              onSubmit={logComplaint}
-            />
-          </Modal>
-        )}
       </OutletsProvider>
     </div>
   );

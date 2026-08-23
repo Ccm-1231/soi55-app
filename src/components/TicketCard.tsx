@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Complaint, SOURCE_LABEL } from "@/lib/types";
 import { useOutletName } from "@/lib/outlets";
-import { tiltForId } from "@/lib/time";
+import { tiltForId, daysSince } from "@/lib/time";
 import { Modal } from "./Modal";
 import { ComplaintDetail } from "./ComplaintDetail";
 import { TimeAgo } from "./TimeAgo";
@@ -14,6 +14,18 @@ const STATUS_ACCENT: Record<Complaint["status"], string> = {
   resolved: "border-l-pandan",
 };
 
+const PRIORITY_DOT: Record<NonNullable<Complaint["priority"]>, string> = {
+  red: "bg-red-500",
+  yellow: "bg-yellow-400",
+  green: "bg-green-500",
+};
+
+const PRIORITY_LABEL: Record<NonNullable<Complaint["priority"]>, string> = {
+  red: "High priority",
+  yellow: "Medium priority",
+  green: "Low priority",
+};
+
 const UNDO_BUTTON_CLASS =
   "shrink-0 rounded-[2px] border border-ink-text/20 px-2 py-1.5 font-body text-[11px] text-ink-text/55 transition-colors hover:border-ink-text/40 hover:text-ink-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-chili cursor-pointer";
 
@@ -21,35 +33,55 @@ export function TicketCard({
   complaint,
   onAdvance,
   onRevert,
+  onActionPlanSaved,
   notchColor = "var(--color-rail)",
 }: {
   complaint: Complaint;
   onAdvance?: (id: string) => void;
   onRevert?: (id: string) => void;
+  onActionPlanSaved?: (id: string, actionPlan: string, updatedAt: string) => void;
   notchColor?: string;
 }) {
   const tilt = tiltForId(complaint.id);
   const [showDetail, setShowDetail] = useState(false);
   const outletName = useOutletName(complaint.locationSlug);
+  const days = daysSince(complaint.submittedAt);
+  const overdue = complaint.status !== "resolved" && days >= 3;
 
   return (
     <>
     <div
-      className={`ticket-card overflow-hidden rounded-[3px] border-l-4 bg-paper text-ink-text shadow-[0_4px_14px_-6px_rgba(0,0,0,0.4)] ${STATUS_ACCENT[complaint.status]}`}
+      className={`ticket-card overflow-hidden rounded-[3px] border-l-4 bg-paper text-ink-text shadow-[0_4px_14px_-6px_rgba(0,0,0,0.4)] ${STATUS_ACCENT[complaint.status]} ${overdue ? "ticket-overdue" : ""}`}
       style={{ transform: `rotate(${tilt}deg)` }}
     >
       <div className="flex items-start justify-between gap-3 px-3.5 pt-3 pb-2.5">
         <div className="flex flex-col gap-0.5">
-          <span className="font-body text-[11px] font-medium tracking-wide text-ink-text/60">
+          <span className="flex items-center gap-1.5 font-body text-[11px] font-medium tracking-wide text-ink-text/60">
+            {complaint.priority && (
+              <span
+                aria-label={PRIORITY_LABEL[complaint.priority]}
+                title={PRIORITY_LABEL[complaint.priority]}
+                className={`inline-block h-2 w-2 rounded-full ${PRIORITY_DOT[complaint.priority]}`}
+              />
+            )}
             #{complaint.id}
           </span>
           <span className="font-display text-base uppercase tracking-wide leading-none">
             {outletName}
           </span>
         </div>
-        <span className="font-body text-[11px] text-ink-text/50 whitespace-nowrap pt-0.5">
-          <TimeAgo iso={complaint.submittedAt} />
-        </span>
+        <div className="flex flex-col items-end gap-0.5 pt-0.5">
+          <span className="font-body text-[11px] text-ink-text/50 whitespace-nowrap">
+            <TimeAgo iso={complaint.submittedAt} />
+          </span>
+          <span
+            className={`whitespace-nowrap rounded-full px-1.5 py-0.5 font-body text-[10px] ${
+              overdue ? "bg-red-600 font-semibold text-white" : "bg-ink-text/10 text-ink-text/55"
+            }`}
+          >
+            Day {days}
+          </span>
+        </div>
       </div>
 
       <div className="ticket-tear mx-3.5" style={{ ["--notch-color" as string]: notchColor }} />
@@ -127,7 +159,7 @@ export function TicketCard({
     </div>
     {showDetail && (
       <Modal title={`Ticket #${complaint.id}`} onClose={() => setShowDetail(false)}>
-        <ComplaintDetail complaint={complaint} />
+        <ComplaintDetail complaint={complaint} onActionPlanSaved={onActionPlanSaved} />
       </Modal>
     )}
     </>

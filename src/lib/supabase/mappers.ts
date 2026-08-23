@@ -1,6 +1,7 @@
 import type {
   Complaint,
   ComparedToPrevious,
+  ComplaintPriority,
   ComplaintSource,
   ComplaintStatus,
   ReturnLikelihood,
@@ -26,6 +27,9 @@ export type ComplaintRow = {
   draw_entry_number: string | null;
   submitted_at: string;
   resolved_at: string | null;
+  priority: ComplaintPriority | null;
+  action_plan: string | null;
+  action_plan_updated_at: string | null;
 };
 
 export function rowToComplaint(row: ComplaintRow): Complaint {
@@ -48,5 +52,8 @@ export function rowToComplaint(row: ComplaintRow): Complaint {
     drawEntryNumber: row.draw_entry_number ?? undefined,
     submittedAt: row.submitted_at,
     resolvedAt: row.resolved_at ?? undefined,
+    priority: row.priority ?? undefined,
+    actionPlan: row.action_plan ?? undefined,
+    actionPlanUpdatedAt: row.action_plan_updated_at ?? undefined,
   };
 }

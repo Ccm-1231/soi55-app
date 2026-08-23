@@ -77,3 +77,20 @@ body {
     box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.45);
   }
 }
+
+/* No action taken for 3+ days: pulses a red ring to demand attention. */
+@keyframes ticket-overdue-blink {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.65); }
+  50% { box-shadow: 0 0 0 5px rgba(220, 38, 38, 0); }
+}
+
+.ticket-overdue {
+  animation: ticket-overdue-blink 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket-overdue {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.8);
+  }
+}

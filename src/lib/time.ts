@@ -9,6 +9,12 @@ export function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
+/** Whole days elapsed since a submission, for "how long has this been sitting" badges. */
+export function daysSince(iso: string): number {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  return Math.max(0, Math.floor(diffMs / 86_400_000));
+}
+
 /** Deterministic small tilt per ticket id, so cards look hand-placed without shifting on re-render. */
 export function tiltForId(id: string): number {
   let hash = 0;
