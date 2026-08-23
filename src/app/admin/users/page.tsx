@@ -101,13 +101,35 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function resetPassword(user: StaffUser) {
+    const label = user.username ? `@${user.username}` : user.email;
+    const newPassword = window.prompt(`New password for ${label} (min 8 characters):`);
+    if (!newPassword) return;
+    if (newPassword.length < 8) {
+      alert("Password must be at least 8 characters.");
+      return;
+    }
+    const res = await fetch(`/api/admin/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: newPassword }),
+    });
+    if (res.ok) {
+      alert(`Password updated for ${label}. Share it with them directly.`);
+    } else {
+      const body = await res.json().catch(() => ({}));
+      alert(body.error ?? "Failed to reset password");
+    }
+  }
+
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
         <h2 className="font-display text-2xl uppercase tracking-wide text-cream">Users</h2>
         <p className="mt-1 font-body text-[12px] text-muted">
           Admins can create any role and remove anyone. Managers can only create User accounts,
-          and can&apos;t remove an admin. Users can only view the board.
+          and can&apos;t remove or reset an admin. Users can only view the board. Username
+          accounts have no email, so if they forget their password, reset it here.
         </p>
       </div>
 
@@ -199,14 +221,24 @@ export default function AdminUsersPage() {
                   </p>
                 </div>
                 {u.id !== currentUserId && (
-                  <button
-                    onClick={() => deleteUser(u)}
-                    disabled={!canDelete}
-                    title={canDelete ? undefined : "Managers can't delete admin accounts"}
-                    className="rounded-[2px] border border-rail-line px-3 py-1.5 font-body text-[11px] font-semibold uppercase tracking-wide text-muted transition-colors hover:border-chili hover:text-chili disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-rail-line disabled:hover:text-muted cursor-pointer"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => resetPassword(u)}
+                      disabled={!canDelete}
+                      title={canDelete ? undefined : "Managers can't reset admin passwords"}
+                      className="rounded-[2px] border border-rail-line px-3 py-1.5 font-body text-[11px] font-semibold uppercase tracking-wide text-muted transition-colors hover:border-turmeric hover:text-turmeric disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-rail-line disabled:hover:text-muted cursor-pointer"
+                    >
+                      Reset password
+                    </button>
+                    <button
+                      onClick={() => deleteUser(u)}
+                      disabled={!canDelete}
+                      title={canDelete ? undefined : "Managers can't delete admin accounts"}
+                      className="rounded-[2px] border border-rail-line px-3 py-1.5 font-body text-[11px] font-semibold uppercase tracking-wide text-muted transition-colors hover:border-chili hover:text-chili disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-rail-line disabled:hover:text-muted cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 )}
               </div>
             );

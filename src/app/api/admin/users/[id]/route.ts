@@ -44,3 +44,50 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   return NextResponse.json({ ok: true });
 }
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canManage(roleOf(user.app_metadata))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  const { password } = await request.json();
+  if (!password || password.length < 8) {
+    return NextResponse.json(
+      { error: "A password of at least 8 characters is required." },
+      { status: 400 }
+    );
+  }
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return NextResponse.json(
+      { error: "User management isn't configured yet — the server is missing SUPABASE_SERVICE_ROLE_KEY." },
+      { status: 501 }
+    );
+  }
+
+  const requesterRole = roleOf(user.app_metadata);
+  const { data: targetData, error: fetchError } = await admin.auth.admin.getUserById(id);
+  if (fetchError || !targetData.user) {
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
+  }
+
+  const targetRole = roleOf(targetData.user.app_metadata);
+  if (targetRole === "admin" && requesterRole !== "admin") {
+    return NextResponse.json({ error: "Managers can't reset admin passwords." }, { status: 403 });
+  }
+
+  const { error } = await admin.auth.admin.updateUserById(id, { password });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
+}
