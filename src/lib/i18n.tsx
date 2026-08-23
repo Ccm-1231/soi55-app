@@ -53,8 +53,8 @@ const DICTS: Record<Locale, Dict> = {
     requiredError: "Add a short answer before sending.",
     nameLabel: "Your name (optional)",
     namePlaceholder: "Optional",
-    phoneLabel: "Phone number (optional: win an iPad)",
-    phonePlaceholder: "So we can follow up",
+    phoneLabel: "Phone Number (To Win iPad)",
+    phonePlaceholder: "Optional",
     submit: "Send to the boss!",
     compared: { better: "Better", same: "Same", worse: "Worse", first_visit: "First visit" },
     returnLikelihood: {

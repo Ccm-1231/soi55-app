@@ -33,12 +33,12 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/outlets");
 
   if (protectedPath && !user) {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (request.nextUrl.pathname === "/login" && user) {
+  if (request.nextUrl.pathname === "/" && user) {
     return NextResponse.redirect(new URL("/board", request.url));
   }
 
@@ -46,5 +46,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/board/:path*", "/admin/:path*", "/outlets/:path*", "/login"],
+  matcher: ["/", "/board/:path*", "/admin/:path*", "/outlets/:path*"],
 };
