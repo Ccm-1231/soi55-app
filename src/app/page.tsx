@@ -63,7 +63,11 @@ function LoginForm() {
     });
     setResetLoading(false);
     if (error) {
-      setResetError("Couldn't send reset link. Try again.");
+      setResetError(
+        error.status === 429 || error.message.toLowerCase().includes("rate limit")
+          ? "Too many reset emails sent recently — this project's email limit resets after a while. Try again shortly, or ask an admin to set up a custom email provider in Supabase to lift the limit."
+          : "Couldn't send reset link. Try again."
+      );
       return;
     }
     setResetSent(true);

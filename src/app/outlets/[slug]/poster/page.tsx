@@ -30,15 +30,24 @@ export default async function OutletPosterPage(props: { params: Promise<{ slug: 
         @media print {
           @page { size: A3 portrait; margin: 0; }
           html, body { margin: 0; padding: 0; background: #fe1c28; }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
         }
       `}</style>
 
-      <div className="mx-auto mb-6 flex max-w-[297mm] items-center justify-between px-4 print:hidden">
+      <div className="mx-auto mb-2 flex max-w-[297mm] items-center justify-between px-4 print:hidden">
         <Link href="/admin/outlets" className="font-body text-[12px] text-muted hover:text-cream">
           ← Back to outlets
         </Link>
         <PrintButton />
       </div>
+      <p className="mx-auto mb-6 max-w-[297mm] px-4 text-right font-body text-[11px] text-muted print:hidden">
+        If the red background doesn&apos;t appear, tick &ldquo;Background graphics&rdquo; in the print
+        dialog&apos;s More settings.
+      </p>
 
       <div
         className="relative mx-auto flex flex-col items-center overflow-hidden bg-signal print:shadow-none"

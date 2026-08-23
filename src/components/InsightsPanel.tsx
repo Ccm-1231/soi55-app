@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { TimeAgo } from "./TimeAgo";
 import { createClient } from "@/lib/supabase/client";
 import { actorLabelFor, logActivity } from "@/lib/activity";
+import { RatingsCharts } from "./RatingsCharts";
+import type { Complaint } from "@/lib/types";
+import type { Outlet } from "@/lib/outlets";
 
 type Insight = {
   summary: string;
@@ -13,9 +16,13 @@ type Insight = {
 
 export function InsightsPanel({
   counts,
+  complaints,
+  outlets,
   onGenerated,
 }: {
   counts: { new: number; in_progress: number; resolved: number };
+  complaints: Complaint[];
+  outlets: Outlet[];
   onGenerated?: () => void;
 }) {
   const [insight, setInsight] = useState<Insight | null>(null);
@@ -81,6 +88,8 @@ export function InsightsPanel({
           <p className="font-body text-[10px] uppercase tracking-wider text-muted">Resolved</p>
         </div>
       </div>
+
+      <RatingsCharts complaints={complaints} outlets={outlets} />
 
       {error && <p className="mb-2 font-body text-[12px] text-chili">{error}</p>}
 

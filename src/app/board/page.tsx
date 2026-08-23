@@ -212,7 +212,12 @@ export default function BoardPage() {
 
       {!loading && (
         <div className="pt-6">
-          <InsightsPanel counts={totalCounts} onGenerated={refreshComplaints} />
+          <InsightsPanel
+            counts={totalCounts}
+            complaints={complaints}
+            outlets={outlets}
+            onGenerated={refreshComplaints}
+          />
         </div>
       )}
 
