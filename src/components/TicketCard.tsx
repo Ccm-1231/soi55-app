@@ -46,7 +46,7 @@ export function TicketCard({
   const [showDetail, setShowDetail] = useState(false);
   const outletName = useOutletName(complaint.locationSlug);
   const days = daysSince(complaint.submittedAt);
-  const overdue = complaint.status !== "resolved" && days >= 3;
+  const overdue = complaint.status !== "resolved" && days >= 2;
 
   return (
     <>
@@ -61,7 +61,7 @@ export function TicketCard({
               <span
                 aria-label={PRIORITY_LABEL[complaint.priority]}
                 title={PRIORITY_LABEL[complaint.priority]}
-                className={`inline-block h-2 w-2 rounded-full ${PRIORITY_DOT[complaint.priority]}`}
+                className={`inline-block h-3.5 w-3.5 shrink-0 rounded-full ring-2 ring-black/10 ${PRIORITY_DOT[complaint.priority]}`}
               />
             )}
             #{complaint.id}

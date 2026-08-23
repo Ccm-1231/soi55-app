@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { rowToComplaint, type ComplaintRow } from "@/lib/supabase/mappers";
 import { OutletsProvider, type Outlet } from "@/lib/outlets";
 import { InsightsPanel } from "@/components/InsightsPanel";
-import { exportToExcel, exportToPdf } from "@/lib/export";
+import { DownloadButton } from "@/components/DownloadButton";
 
 const COLUMNS: { status: ComplaintStatus; title: string; accent: string }[] = [
   { status: "new", title: "New", accent: "text-chili" },
@@ -33,7 +33,6 @@ export default function BoardPage() {
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationFilter, setLocationFilter] = useState<string>("all");
-  const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -120,16 +119,6 @@ export default function BoardPage() {
     router.refresh();
   }
 
-  async function handleExport(format: "excel" | "pdf") {
-    setExporting(format);
-    try {
-      if (format === "excel") await exportToExcel(visible, outlets);
-      else await exportToPdf(visible, outlets);
-    } finally {
-      setExporting(null);
-    }
-  }
-
   return (
     <div className="flex min-h-screen flex-col bg-ink">
       <header className="border-b border-rail-line px-5 py-4 sm:px-8">
@@ -153,20 +142,7 @@ export default function BoardPage() {
                 </option>
               ))}
             </select>
-            <button
-              onClick={() => handleExport("excel")}
-              disabled={exporting !== null}
-              className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-cream transition-colors hover:bg-rail disabled:opacity-50 cursor-pointer"
-            >
-              {exporting === "excel" ? "Exporting…" : "⬇ Excel"}
-            </button>
-            <button
-              onClick={() => handleExport("pdf")}
-              disabled={exporting !== null}
-              className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-cream transition-colors hover:bg-rail disabled:opacity-50 cursor-pointer"
-            >
-              {exporting === "pdf" ? "Exporting…" : "⬇ PDF"}
-            </button>
+            <DownloadButton complaints={visible} outlets={outlets} />
             <Link
               href="/admin"
               className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-muted transition-colors hover:text-cream"
