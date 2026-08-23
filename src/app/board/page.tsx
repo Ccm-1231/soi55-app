@@ -10,6 +10,7 @@ import { rowToComplaint, type ComplaintRow } from "@/lib/supabase/mappers";
 import { OutletsProvider, type Outlet } from "@/lib/outlets";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { DownloadButton } from "@/components/DownloadButton";
+import { canManage, roleOf } from "@/lib/roles";
 
 const COLUMNS: { status: ComplaintStatus; title: string; accent: string }[] = [
   { status: "new", title: "New", accent: "text-chili" },
@@ -40,15 +41,18 @@ export default function BoardPage() {
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [showManageLink, setShowManageLink] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     Promise.all([
       supabase.from("complaints").select("*").order("submitted_at", { ascending: false }),
       supabase.from("outlets").select("id, slug, name").order("created_at", { ascending: true }),
-    ]).then(([complaintsRes, outletsRes]) => {
+      supabase.auth.getUser(),
+    ]).then(([complaintsRes, outletsRes, { data: userRes }]) => {
       setComplaints(((complaintsRes.data as ComplaintRow[] | null) ?? []).map(rowToComplaint));
       setOutlets((outletsRes.data as Outlet[] | null) ?? []);
+      setShowManageLink(canManage(roleOf(userRes.user?.app_metadata)));
       setLoading(false);
     });
   }, []);
@@ -150,12 +154,14 @@ export default function BoardPage() {
               ))}
             </select>
             <DownloadButton complaints={visible} outlets={outlets} />
-            <Link
-              href="/admin"
-              className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-muted transition-colors hover:text-cream"
-            >
-              Manage
-            </Link>
+            {showManageLink && (
+              <Link
+                href="/admin"
+                className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-muted transition-colors hover:text-cream"
+              >
+                Manage
+              </Link>
+            )}
             <button
               onClick={signOut}
               className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-muted transition-colors hover:text-cream cursor-pointer"

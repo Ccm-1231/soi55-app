@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { roleOf } from "@/lib/roles";
+import { canManage, roleOf } from "@/lib/roles";
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,6 +11,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   } = await supabase.auth.getUser();
 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canManage(roleOf(user.app_metadata))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
   if (user.id === id) {
     return NextResponse.json({ error: "You can't delete your own account." }, { status: 400 });
   }

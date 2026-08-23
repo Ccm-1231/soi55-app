@@ -6,22 +6,29 @@ import type { StaffRole } from "@/lib/roles";
 
 type StaffUser = {
   id: string;
-  email: string;
+  email: string | null;
+  username: string | null;
   role: StaffRole;
   createdAt: string;
   lastSignInAt: string | null;
 };
 
-const ROLE_LABEL: Record<StaffRole, string> = { admin: "Admin", manager: "Manager" };
+const ROLE_LABEL: Record<StaffRole, string> = { admin: "Admin", manager: "Manager", user: "User" };
+const ROLE_BADGE: Record<StaffRole, string> = {
+  admin: "bg-turmeric/20 text-turmeric",
+  manager: "bg-pandan/20 text-pandan",
+  user: "bg-ink-text/20 text-muted",
+};
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<StaffRole>("manager");
+  const [currentUserRole, setCurrentUserRole] = useState<StaffRole>("user");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<StaffRole>("manager");
   const [adding, setAdding] = useState(false);
@@ -65,11 +72,14 @@ export default function AdminUsersPage() {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify(
+          role === "user" ? { username, password, role } : { email, password, role }
+        ),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Failed to add user");
       setEmail("");
+      setUsername("");
       setPassword("");
       setRole("manager");
       reload();
@@ -81,7 +91,7 @@ export default function AdminUsersPage() {
   }
 
   async function deleteUser(user: StaffUser) {
-    if (!window.confirm(`Remove staff access for ${user.email}?`)) return;
+    if (!window.confirm(`Remove staff access for ${user.username ?? user.email}?`)) return;
     const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
     if (res.ok) {
       setUsers((prev) => prev.filter((u) => u.id !== user.id));
@@ -97,19 +107,30 @@ export default function AdminUsersPage() {
         <h2 className="font-display text-2xl uppercase tracking-wide text-cream">Users</h2>
         <p className="mt-1 font-body text-[12px] text-muted">
           Admins can add or remove anyone. Managers can add or remove staff, but can&apos;t remove
-          an admin.
+          an admin. Users can only view the board.
         </p>
       </div>
 
       <form onSubmit={addUser} className="flex flex-wrap gap-2.5">
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          className="flex-1 min-w-[180px] rounded-[2px] border border-rail-line bg-rail px-3 py-2 text-[14px] text-cream placeholder:text-muted focus:border-chili focus:outline-none focus:ring-2 focus:ring-chili/25"
-        />
+        {role === "user" ? (
+          <input
+            type="text"
+            required
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Username"
+            className="flex-1 min-w-[180px] rounded-[2px] border border-rail-line bg-rail px-3 py-2 text-[14px] text-cream placeholder:text-muted focus:border-chili focus:outline-none focus:ring-2 focus:ring-chili/25"
+          />
+        ) : (
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            className="flex-1 min-w-[180px] rounded-[2px] border border-rail-line bg-rail px-3 py-2 text-[14px] text-cream placeholder:text-muted focus:border-chili focus:outline-none focus:ring-2 focus:ring-chili/25"
+          />
+        )}
         <input
           type="password"
           required
@@ -119,16 +140,15 @@ export default function AdminUsersPage() {
           placeholder="Password (min 8 chars)"
           className="flex-1 min-w-[180px] rounded-[2px] border border-rail-line bg-rail px-3 py-2 text-[14px] text-cream placeholder:text-muted focus:border-chili focus:outline-none focus:ring-2 focus:ring-chili/25"
         />
-        {currentUserRole === "admin" && (
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as StaffRole)}
-            className="rounded-[2px] border border-rail-line bg-rail px-3 py-2 font-body text-[13px] text-cream focus:outline-none focus:ring-2 focus:ring-chili/25"
-          >
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
-          </select>
-        )}
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value as StaffRole)}
+          className="rounded-[2px] border border-rail-line bg-rail px-3 py-2 font-body text-[13px] text-cream focus:outline-none focus:ring-2 focus:ring-chili/25"
+        >
+          <option value="manager">Manager</option>
+          <option value="user">User</option>
+          {currentUserRole === "admin" && <option value="admin">Admin</option>}
+        </select>
         <button
           type="submit"
           disabled={adding}
@@ -154,12 +174,8 @@ export default function AdminUsersPage() {
               >
                 <div>
                   <p className="flex items-center gap-2 font-body text-[14px] text-cream">
-                    {u.email}
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] uppercase ${
-                        u.role === "admin" ? "bg-turmeric/20 text-turmeric" : "bg-pandan/20 text-pandan"
-                      }`}
-                    >
+                    {u.username ? `@${u.username}` : u.email}
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] uppercase ${ROLE_BADGE[u.role]}`}>
                       {ROLE_LABEL[u.role]}
                     </span>
                     {u.id === currentUserId && (

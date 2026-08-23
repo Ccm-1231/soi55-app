@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,11 +23,30 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    let loginEmail = identifier;
+    if (!identifier.includes("@")) {
+      try {
+        const res = await fetch("/api/resolve-username", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: identifier }),
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error();
+        loginEmail = body.email;
+      } catch {
+        setLoading(false);
+        setError("Wrong username or password.");
+        return;
+      }
+    }
+
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
     setLoading(false);
     if (error) {
-      setError("Wrong email or password.");
+      setError("Wrong email/username or password.");
       return;
     }
     router.push(searchParams.get("next") || "/board");
@@ -51,38 +70,30 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-ink px-4 py-10">
-      <div className="flex flex-col items-center gap-3">
-        <Image
-          src="/soi55-logo.jpg"
-          alt="Soi 55 Thai Kitchen"
-          width={1080}
-          height={738}
-          className="h-16 w-auto rounded-[2px]"
-          priority
-        />
-        <div className="text-center">
-          <p className="font-body text-[11px] uppercase tracking-[0.25em] text-muted">
-            Soi 55 Thai Kitchen
-          </p>
-          <h1 className="font-display text-3xl uppercase tracking-wide text-cream sm:text-4xl">
-            Complaint Rail
-          </h1>
-        </div>
-      </div>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-signal px-4 py-10">
+      <Image
+        src="/soi55-logo.jpg"
+        alt="Soi 55 Thai Kitchen"
+        width={1080}
+        height={738}
+        className="h-24 w-auto rounded-[2px]"
+        priority
+      />
 
-      <div className="w-full max-w-sm rounded-[3px] border border-rail-line bg-rail p-6 text-cream">
+      <div className="w-full max-w-sm rounded-[3px] border border-rail-line bg-rail p-6 text-cream shadow-[0_16px_40px_-12px_rgba(0,0,0,0.6)]">
         {!showReset ? (
           <>
             <h2 className="mb-5 font-display text-xl uppercase tracking-wide">Staff login</h2>
             <form onSubmit={handleSubmit}>
               <label className="mb-3 flex flex-col gap-1.5">
-                <span className="text-[11px] uppercase tracking-wider text-muted">Email</span>
+                <span className="text-[11px] uppercase tracking-wider text-muted">
+                  Email or username
+                </span>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   className="rounded-[2px] border border-rail-line bg-ink px-3 py-2 text-[14px] text-cream focus:border-chili focus:outline-none focus:ring-2 focus:ring-chili/25"
                 />
               </label>
@@ -102,7 +113,7 @@ function LoginForm() {
                 type="button"
                 onClick={() => {
                   setShowReset(true);
-                  setResetEmail(email);
+                  setResetEmail(identifier.includes("@") ? identifier : "");
                 }}
                 className="mb-4 font-body text-[11px] text-turmeric hover:underline cursor-pointer"
               >

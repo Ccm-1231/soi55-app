@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { canManage, roleOf } from "@/lib/roles";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -39,6 +40,10 @@ export async function proxy(request: NextRequest) {
   }
 
   if (request.nextUrl.pathname === "/" && user) {
+    return NextResponse.redirect(new URL("/board", request.url));
+  }
+
+  if (request.nextUrl.pathname.startsWith("/admin") && user && !canManage(roleOf(user.app_metadata))) {
     return NextResponse.redirect(new URL("/board", request.url));
   }
 
