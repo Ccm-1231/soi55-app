@@ -30,7 +30,7 @@ export default function AdminUsersPage() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<StaffRole>("manager");
+  const [role, setRole] = useState<StaffRole>("user");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -81,7 +81,7 @@ export default function AdminUsersPage() {
       setEmail("");
       setUsername("");
       setPassword("");
-      setRole("manager");
+      setRole("user");
       reload();
     } catch (e) {
       setAddError(e instanceof Error ? e.message : "Failed to add user");
@@ -106,8 +106,8 @@ export default function AdminUsersPage() {
       <div>
         <h2 className="font-display text-2xl uppercase tracking-wide text-cream">Users</h2>
         <p className="mt-1 font-body text-[12px] text-muted">
-          Admins can add or remove anyone. Managers can add or remove staff, but can&apos;t remove
-          an admin. Users can only view the board.
+          Admins can create any role and remove anyone. Managers can only create User accounts,
+          and can&apos;t remove an admin. Users can only view the board.
         </p>
       </div>
 
@@ -145,9 +145,13 @@ export default function AdminUsersPage() {
           onChange={(e) => setRole(e.target.value as StaffRole)}
           className="rounded-[2px] border border-rail-line bg-rail px-3 py-2 font-body text-[13px] text-cream focus:outline-none focus:ring-2 focus:ring-chili/25"
         >
-          <option value="manager">Manager</option>
           <option value="user">User</option>
-          {currentUserRole === "admin" && <option value="admin">Admin</option>}
+          {currentUserRole === "admin" && (
+            <>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </>
+          )}
         </select>
         <button
           type="submit"

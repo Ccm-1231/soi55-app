@@ -81,9 +81,9 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  if (requestedRole === "admin" && requesterRole !== "admin") {
+  if (requestedRole !== "user" && requesterRole !== "admin") {
     return NextResponse.json(
-      { error: "Only an admin can create another admin account." },
+      { error: "Managers can only create user accounts." },
       { status: 403 }
     );
   }
