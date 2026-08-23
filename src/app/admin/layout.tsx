@@ -51,7 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        <nav className="mt-8 flex justify-start gap-1.5">
+        <nav className="mt-8 flex flex-wrap justify-start gap-1.5">
           {TABS.map((tab) => {
             const active = pathname?.startsWith(tab.href);
             return (
