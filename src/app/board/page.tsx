@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { rowToComplaint, type ComplaintRow } from "@/lib/supabase/mappers";
 import { OutletsProvider, type Outlet } from "@/lib/outlets";
 import { InsightsPanel } from "@/components/InsightsPanel";
-import { DailyGoalStrip } from "@/components/DailyGoalStrip";
+import { MonthlyGoalStrip } from "@/components/MonthlyGoalStrip";
 import { DownloadButton } from "@/components/DownloadButton";
 import { ChangePasswordButton } from "@/components/ChangePasswordButton";
 import { canManage, roleOf } from "@/lib/roles";
@@ -215,7 +215,7 @@ export default function BoardPage() {
 
       {!loading && (
         <div className="pt-6">
-          <DailyGoalStrip complaints={complaints} outlets={outlets} />
+          <MonthlyGoalStrip complaints={complaints} outlets={outlets} />
           <InsightsPanel
             counts={totalCounts}
             complaints={complaints}
