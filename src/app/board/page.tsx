@@ -1,0 +1,210 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { TicketCard } from "@/components/TicketCard";
+import { Modal } from "@/components/Modal";
+import { ComplaintForm, ComplaintFormValues } from "@/components/ComplaintForm";
+import { Complaint, ComplaintStatus } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client";
+import { rowToComplaint, type ComplaintRow } from "@/lib/supabase/mappers";
+import { OutletsProvider, type Outlet } from "@/lib/outlets";
+
+const COLUMNS: { status: ComplaintStatus; title: string; accent: string }[] = [
+  { status: "new", title: "New", accent: "text-chili" },
+  { status: "in_progress", title: "In progress", accent: "text-turmeric" },
+  { status: "resolved", title: "Resolved", accent: "text-pandan" },
+];
+
+const NEXT_STATUS: Partial<Record<ComplaintStatus, ComplaintStatus>> = {
+  new: "in_progress",
+  in_progress: "resolved",
+};
+
+const PREV_STATUS: Partial<Record<ComplaintStatus, ComplaintStatus>> = {
+  in_progress: "new",
+  resolved: "in_progress",
+};
+
+export default function BoardPage() {
+  const router = useRouter();
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [outlets, setOutlets] = useState<Outlet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [showLogModal, setShowLogModal] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    Promise.all([
+      supabase.from("complaints").select("*").order("submitted_at", { ascending: false }),
+      supabase.from("outlets").select("id, slug, name").order("created_at", { ascending: true }),
+    ]).then(([complaintsRes, outletsRes]) => {
+      setComplaints(((complaintsRes.data as ComplaintRow[] | null) ?? []).map(rowToComplaint));
+      setOutlets((outletsRes.data as Outlet[] | null) ?? []);
+      setLoading(false);
+    });
+  }, []);
+
+  const visible = useMemo(
+    () =>
+      locationFilter === "all"
+        ? complaints
+        : complaints.filter((c) => c.locationSlug === locationFilter),
+    [complaints, locationFilter]
+  );
+
+  async function advance(id: string) {
+    const current = complaints.find((c) => c.id === id);
+    const next = current && NEXT_STATUS[current.status];
+    if (!next) return;
+
+    const resolvedAt = next === "resolved" ? new Date().toISOString() : current?.resolvedAt;
+    setComplaints((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, status: next, resolvedAt } : c))
+    );
+
+    const supabase = createClient();
+    await supabase
+      .from("complaints")
+      .update({ status: next, resolved_at: resolvedAt ?? null })
+      .eq("ticket_number", id);
+  }
+
+  async function revert(id: string) {
+    const current = complaints.find((c) => c.id === id);
+    const prev = current && PREV_STATUS[current.status];
+    if (!prev) return;
+
+    const resolvedAt = prev === "resolved" ? current?.resolvedAt : undefined;
+    setComplaints((prevList) =>
+      prevList.map((c) => (c.id === id ? { ...c, status: prev, resolvedAt } : c))
+    );
+
+    const supabase = createClient();
+    await supabase
+      .from("complaints")
+      .update({ status: prev, resolved_at: resolvedAt ?? null })
+      .eq("ticket_number", id);
+  }
+
+  async function logComplaint(values: ComplaintFormValues) {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("complaints")
+      .insert({
+        location_slug: values.locationSlug,
+        source: values.source,
+        description: values.description,
+        guest_name: values.guestName || null,
+        guest_contact: values.guestContact || null,
+      })
+      .select()
+      .single<ComplaintRow>();
+
+    if (data) {
+      setComplaints((prev) => [rowToComplaint(data), ...prev]);
+    }
+    setShowLogModal(false);
+  }
+
+  async function signOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-ink">
+      <header className="border-b border-rail-line px-5 py-4 sm:px-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="font-body text-[11px] uppercase tracking-[0.2em] text-muted">Soi 55 Thai Kitchen</p>
+            <h1 className="font-display text-3xl uppercase tracking-wide text-cream sm:text-4xl">
+              Complaint Rail
+            </h1>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="rounded-[2px] border border-rail-line bg-rail px-3 py-2 font-body text-[12px] uppercase tracking-wide text-cream focus:outline-none focus:ring-2 focus:ring-chili/40"
+            >
+              <option value="all">All locations</option>
+              {outlets.map((l) => (
+                <option key={l.slug} value={l.slug}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setShowLogModal(true)}
+              className="rounded-[2px] bg-turmeric px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-ink transition-colors hover:brightness-95 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-turmeric"
+            >
+              + Log a complaint
+            </button>
+            <Link
+              href="/admin"
+              className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-muted transition-colors hover:text-cream"
+            >
+              Manage
+            </Link>
+            <button
+              onClick={signOut}
+              className="rounded-[2px] border border-rail-line px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-muted transition-colors hover:text-cream cursor-pointer"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {loading && (
+        <p className="px-5 py-6 font-body text-[12px] text-muted sm:px-8">Loading complaints…</p>
+      )}
+
+      <OutletsProvider outlets={outlets}>
+        <main className="flex-1 px-5 py-6 sm:px-8">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {COLUMNS.map((col) => {
+              const items = visible.filter((c) => c.status === col.status);
+              return (
+                <section key={col.status} className="flex flex-col gap-3">
+                  <div className="flex items-baseline gap-2 border-b border-rail-line pb-2">
+                    <h2 className={`font-display text-xl uppercase tracking-wide ${col.accent}`}>
+                      {col.title}
+                    </h2>
+                    <span className="font-body text-[12px] text-muted">{items.length}</span>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {items.length === 0 && (
+                      <p className="rounded-[3px] border border-dashed border-rail-line px-3 py-6 text-center font-body text-[12px] text-muted">
+                        Nothing here
+                      </p>
+                    )}
+                    {items.map((c) => (
+                      <TicketCard key={c.id} complaint={c} onAdvance={advance} onRevert={revert} />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </main>
+
+        {showLogModal && (
+          <Modal title="Log a complaint" onClose={() => setShowLogModal(false)}>
+            <ComplaintForm
+              variant="manual"
+              submitLabel="Add to board"
+              locations={outlets}
+              onSubmit={logComplaint}
+            />
+          </Modal>
+        )}
+      </OutletsProvider>
+    </div>
+  );
+}
