@@ -94,7 +94,7 @@ export default async function OutletPosterPage(props: { params: Promise<{ slug: 
           </p>
         </div>
 
-        <p className="mt-auto mb-[4mm] font-body text-[3mm] tracking-wide text-cream/40">
+        <p className="mt-auto mb-[4mm] font-body text-[6mm] tracking-wide text-cream/40">
           {outlet.name}
         </p>
       </div>
