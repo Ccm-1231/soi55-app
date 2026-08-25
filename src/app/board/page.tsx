@@ -46,6 +46,7 @@ export default function BoardPage() {
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [showManageLink, setShowManageLink] = useState(false);
   const [actorLabel, setActorLabel] = useState("unknown");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "board">("dashboard");
 
   useEffect(() => {
     const supabase = createClient();
@@ -181,19 +182,6 @@ export default function BoardPage() {
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="rounded-[2px] border border-rail-line bg-rail px-3 py-2 font-body text-[12px] uppercase tracking-wide text-cream focus:outline-none focus:ring-2 focus:ring-chili/40"
-            >
-              <option value="all">All locations</option>
-              {outlets.map((l) => (
-                <option key={l.slug} value={l.slug}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-            <DownloadButton complaints={visible} outlets={outlets} />
             {showManageLink && (
               <Link
                 href="/admin"
@@ -211,9 +199,27 @@ export default function BoardPage() {
             </button>
           </div>
         </div>
+
+        <nav className="mt-4 flex flex-wrap gap-1.5">
+          {(["dashboard", "board"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`rounded-[2px] px-3.5 py-2 font-body text-[12px] font-semibold uppercase tracking-wide transition-colors cursor-pointer ${
+                activeTab === tab ? "bg-chili text-cream" : "text-muted hover:text-cream"
+              }`}
+            >
+              {tab === "dashboard" ? "Dashboard" : "Board"}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      {!loading && (
+      {loading && (
+        <p className="px-5 py-6 font-body text-[12px] text-muted sm:px-8">Loading complaints…</p>
+      )}
+
+      {!loading && activeTab === "dashboard" && (
         <div className="pt-6">
           <MonthlyGoalStrip complaints={complaints} outlets={outlets} />
           <InsightsPanel
@@ -225,45 +231,58 @@ export default function BoardPage() {
         </div>
       )}
 
-      {loading && (
-        <p className="px-5 py-6 font-body text-[12px] text-muted sm:px-8">Loading complaints…</p>
+      {!loading && activeTab === "board" && (
+        <OutletsProvider outlets={outlets}>
+          <main className="flex-1 px-5 py-6 sm:px-8">
+            <div className="mb-5 flex flex-wrap items-center gap-2.5">
+              <select
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                className="rounded-[2px] border border-rail-line bg-rail px-3 py-2 font-body text-[12px] uppercase tracking-wide text-cream focus:outline-none focus:ring-2 focus:ring-chili/40"
+              >
+                <option value="all">All locations</option>
+                {outlets.map((l) => (
+                  <option key={l.slug} value={l.slug}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+              <DownloadButton complaints={visible} outlets={outlets} />
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {COLUMNS.map((col) => {
+                const items = visible.filter((c) => c.status === col.status).sort(byPriority);
+                return (
+                  <section key={col.status} className="flex flex-col gap-3">
+                    <div className="flex items-baseline gap-2 border-b border-rail-line pb-2">
+                      <h2 className={`font-display text-xl uppercase tracking-wide ${col.accent}`}>
+                        {col.title}
+                      </h2>
+                      <span className="font-body text-[12px] text-muted">{items.length}</span>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                      {items.length === 0 && (
+                        <p className="rounded-[3px] border border-dashed border-rail-line px-3 py-6 text-center font-body text-[12px] text-muted">
+                          Nothing here
+                        </p>
+                      )}
+                      {items.map((c) => (
+                        <TicketCard
+                          key={c.id}
+                          complaint={c}
+                          onAdvance={advance}
+                          onRevert={revert}
+                          onActionPlanSaved={actionPlanSaved}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </main>
+        </OutletsProvider>
       )}
-
-      <OutletsProvider outlets={outlets}>
-        <main className="flex-1 px-5 py-6 sm:px-8">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {COLUMNS.map((col) => {
-              const items = visible.filter((c) => c.status === col.status).sort(byPriority);
-              return (
-                <section key={col.status} className="flex flex-col gap-3">
-                  <div className="flex items-baseline gap-2 border-b border-rail-line pb-2">
-                    <h2 className={`font-display text-xl uppercase tracking-wide ${col.accent}`}>
-                      {col.title}
-                    </h2>
-                    <span className="font-body text-[12px] text-muted">{items.length}</span>
-                  </div>
-                  <div className="flex flex-col gap-4">
-                    {items.length === 0 && (
-                      <p className="rounded-[3px] border border-dashed border-rail-line px-3 py-6 text-center font-body text-[12px] text-muted">
-                        Nothing here
-                      </p>
-                    )}
-                    {items.map((c) => (
-                      <TicketCard
-                        key={c.id}
-                        complaint={c}
-                        onAdvance={advance}
-                        onRevert={revert}
-                        onActionPlanSaved={actionPlanSaved}
-                      />
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-        </main>
-      </OutletsProvider>
     </div>
   );
 }

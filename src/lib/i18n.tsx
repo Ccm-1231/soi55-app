@@ -29,6 +29,7 @@ type Dict = {
   namePlaceholder: string;
   phoneLabel: string;
   phonePlaceholder: string;
+  phoneHint: string;
   submit: string;
   compared: Record<ComparedToPrevious, string>;
   returnLikelihood: Record<ReturnLikelihood, string>;
@@ -55,6 +56,7 @@ const DICTS: Record<Locale, Dict> = {
     namePlaceholder: "Optional",
     phoneLabel: "Phone Number (To Win iPad)",
     phonePlaceholder: "Optional",
+    phoneHint: "Required to enter the RM20 off + iPad draw",
     submit: "Send to the boss!",
     compared: { better: "Better", same: "Same", worse: "Worse", first_visit: "First visit" },
     returnLikelihood: {
@@ -85,6 +87,7 @@ const DICTS: Record<Locale, Dict> = {
     namePlaceholder: "可选",
     phoneLabel: "电话号码（可选：赢取 iPad）",
     phonePlaceholder: "方便我们跟进",
+    phoneHint: "填写电话号码才能参加 RM20 折扣及 iPad 抽奖",
     submit: "发送给老板！",
     compared: { better: "更好", same: "一样", worse: "更差", first_visit: "第一次光临" },
     returnLikelihood: {
@@ -115,6 +118,7 @@ const DICTS: Record<Locale, Dict> = {
     namePlaceholder: "Pilihan",
     phoneLabel: "Nombor telefon (pilihan: menangi iPad)",
     phonePlaceholder: "Supaya kami boleh susulan",
+    phoneHint: "Diperlukan untuk menyertai diskaun RM20 + cabutan iPad",
     submit: "Hantar kepada bos!",
     compared: { better: "Lebih baik", same: "Sama", worse: "Lebih teruk", first_visit: "Lawatan pertama" },
     returnLikelihood: {

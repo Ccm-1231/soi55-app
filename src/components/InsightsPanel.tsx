@@ -5,6 +5,7 @@ import { TimeAgo } from "./TimeAgo";
 import { createClient } from "@/lib/supabase/client";
 import { actorLabelFor, logActivity } from "@/lib/activity";
 import { RatingsCharts } from "./RatingsCharts";
+import { BossFeedbackPanel } from "./BossFeedbackPanel";
 import type { Complaint } from "@/lib/types";
 import type { Outlet } from "@/lib/outlets";
 
@@ -110,6 +111,8 @@ export function InsightsPanel({
           red/yellow/green labels on every ticket below.
         </p>
       )}
+
+      <BossFeedbackPanel complaints={complaints} outlets={outlets} />
     </div>
   );
 }

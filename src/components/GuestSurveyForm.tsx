@@ -184,7 +184,7 @@ export function GuestSurveyForm({
         </Question>
       )}
 
-      <div className="grid grid-cols-2 gap-3 border-t border-ink-text/10 pt-4">
+      <div className="flex flex-col gap-3 border-t border-ink-text/10 pt-4">
         <label className="flex flex-col gap-1.5">
           <span className="text-[11px] uppercase tracking-wider text-ink-text/55">{t.nameLabel}</span>
           <input
@@ -194,14 +194,17 @@ export function GuestSurveyForm({
             placeholder={t.namePlaceholder}
           />
         </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[11px] uppercase tracking-wider text-ink-text/55">{t.phoneLabel}</span>
+        <label className="flex flex-col gap-1.5 rounded-[3px] border-2 border-turmeric bg-turmeric/10 p-3">
+          <span className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-chili">
+            📱 {t.phoneLabel}
+          </span>
           <input
-            className={inputClass}
+            className={`${inputClass} bg-white`}
             value={guestContact}
             onChange={(e) => setGuestContact(e.target.value)}
             placeholder={t.phonePlaceholder}
           />
+          <span className="text-[11px] text-ink-text/60">{t.phoneHint}</span>
         </label>
       </div>
 
