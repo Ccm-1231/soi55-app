@@ -209,7 +209,7 @@ export default function BoardPage() {
                 activeTab === tab ? "bg-chili text-cream" : "text-muted hover:text-cream"
               }`}
             >
-              {tab === "dashboard" ? "Dashboard" : "Board"}
+              {tab === "dashboard" ? "Dashboard" : "Reviews"}
             </button>
           ))}
         </nav>

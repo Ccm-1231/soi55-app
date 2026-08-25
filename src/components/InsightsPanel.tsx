@@ -5,6 +5,7 @@ import { TimeAgo } from "./TimeAgo";
 import { createClient } from "@/lib/supabase/client";
 import { actorLabelFor, logActivity } from "@/lib/activity";
 import { RatingsCharts } from "./RatingsCharts";
+import { DetailedBreakdown } from "./DetailedBreakdown";
 import { BossFeedbackPanel } from "./BossFeedbackPanel";
 import type { Complaint } from "@/lib/types";
 import type { Outlet } from "@/lib/outlets";
@@ -91,6 +92,8 @@ export function InsightsPanel({
       </div>
 
       <RatingsCharts complaints={complaints} outlets={outlets} />
+
+      <DetailedBreakdown complaints={complaints} />
 
       {error && <p className="mb-2 font-body text-[12px] text-chili">{error}</p>}
 
