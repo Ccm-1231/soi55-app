@@ -57,7 +57,9 @@ export default function BoardPage() {
     ]).then(([complaintsRes, outletsRes, { data: userRes }]) => {
       setComplaints(((complaintsRes.data as ComplaintRow[] | null) ?? []).map(rowToComplaint));
       setOutlets((outletsRes.data as Outlet[] | null) ?? []);
-      setShowManageLink(canManage(roleOf(userRes.user?.app_metadata)));
+      const canView = canManage(roleOf(userRes.user?.app_metadata));
+      setShowManageLink(canView);
+      if (!canView) setActiveTab("board");
       setActorLabel(actorLabelFor(userRes.user));
       setLoading(false);
     });
@@ -200,26 +202,28 @@ export default function BoardPage() {
           </div>
         </div>
 
-        <nav className="mt-4 flex flex-wrap gap-1.5">
-          {(["dashboard", "board"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`rounded-[2px] px-3.5 py-2 font-body text-[12px] font-semibold uppercase tracking-wide transition-colors cursor-pointer ${
-                activeTab === tab ? "bg-chili text-cream" : "text-muted hover:text-cream"
-              }`}
-            >
-              {tab === "dashboard" ? "Dashboard" : "Reviews"}
-            </button>
-          ))}
-        </nav>
+        {showManageLink && (
+          <nav className="mt-4 flex flex-wrap gap-1.5">
+            {(["dashboard", "board"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`rounded-[2px] px-3.5 py-2 font-body text-[12px] font-semibold uppercase tracking-wide transition-colors cursor-pointer ${
+                  activeTab === tab ? "bg-chili text-cream" : "text-muted hover:text-cream"
+                }`}
+              >
+                {tab === "dashboard" ? "Dashboard" : "Reviews"}
+              </button>
+            ))}
+          </nav>
+        )}
       </header>
 
       {loading && (
         <p className="px-5 py-6 font-body text-[12px] text-muted sm:px-8">Loading complaints…</p>
       )}
 
-      {!loading && activeTab === "dashboard" && (
+      {!loading && showManageLink && activeTab === "dashboard" && (
         <div className="pt-6">
           <MonthlyGoalStrip complaints={complaints} outlets={outlets} />
           <InsightsPanel
