@@ -108,13 +108,14 @@ export async function exportToPdf(
     STATUS_LABEL[c.status],
     c.priority ? PRIORITY_LABEL[c.priority] : "-",
     String(daysSince(c.submittedAt)),
+    [c.guestName, c.guestContact].filter(Boolean).join(" · ") || "-",
     c.description,
     c.actionPlan ?? "",
   ]);
 
   autoTable(doc, {
     startY: 26,
-    head: [["Ticket", "Outlet", "Status", "Priority", "Days", "Review", "Action Plan"]],
+    head: [["Ticket", "Outlet", "Status", "Priority", "Days", "Guest", "Review", "Action Plan"]],
     body: rows,
     styles: { fontSize: 8, cellWidth: "wrap" },
     columnStyles: {
@@ -123,8 +124,9 @@ export async function exportToPdf(
       2: { cellWidth: 20 },
       3: { cellWidth: 16 },
       4: { cellWidth: 14 },
-      5: { cellWidth: 90 },
-      6: { cellWidth: 90 },
+      5: { cellWidth: 40 },
+      6: { cellWidth: 80 },
+      7: { cellWidth: 80 },
     },
   });
 
