@@ -39,8 +39,8 @@ function SubmitPageInner({
           </h2>
           <p className="mb-3 text-[13px] text-ink-text/70">{t.subheading}</p>
           <div className="mb-4 rounded-[2px] border border-dashed border-turmeric/50 bg-turmeric/10 px-3 py-2.5">
-            <p className="text-[13px] font-medium leading-snug text-ink-text">{t.rewardLine1}</p>
-            <p className="mt-1 text-[13px] font-medium leading-snug text-ink-text">{t.rewardLine2}</p>
+            <p className="text-[13px] font-medium leading-snug text-ink-text">{t.rewardLine2}</p>
+            <p className="mt-1 text-[12px] text-ink-text/60">{t.socialFollow}</p>
           </div>
           <SubmitFlow
             locationSlug={locationSlug}

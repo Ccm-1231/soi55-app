@@ -87,10 +87,10 @@ export default async function OutletPosterPage(props: { params: Promise<{ slug: 
 
         <div className="mt-[10mm] flex flex-col items-center gap-[4mm] rounded-[6mm] bg-paper px-[12mm] py-[8mm] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)]">
           <p className="text-center font-body text-[8mm] font-bold text-signal">
-            🎁 Get RM20 OFF your next visit
+            📱 Stand a chance to win an Apple iPad (worth RM 2,049)!
           </p>
-          <p className="text-center font-body text-[8mm] font-bold text-signal">
-            📱 Stand a chance to win an Apple iPad!
+          <p className="text-center font-body text-[4.5mm] font-semibold text-signal/70">
+            Follow our social media to see the winner!
           </p>
         </div>
 

@@ -76,11 +76,9 @@ export function SubmitFlow({
         </p>
 
         <div className="rounded-[2px] border border-dashed border-turmeric/50 bg-turmeric/10 px-3 py-3 text-left">
-          <p className="text-[12px] text-ink-text/60">{t.confirm.couponLabel}</p>
-          <p className="font-display text-2xl tracking-wide text-chili">{couponCode}</p>
-          <p className="mt-2 text-[12px] text-ink-text/60">{t.confirm.drawLabel}</p>
+          <p className="text-[12px] text-ink-text/60">{t.confirm.drawLabel}</p>
           <p className="font-display text-2xl tracking-wide text-chili">{drawEntry}</p>
-          <p className="mt-2 text-[11px] text-ink-text/50">{t.confirm.showScreen}</p>
+          <p className="mt-2 text-[11px] text-ink-text/50">{t.confirm.socialNote}</p>
         </div>
 
         <div className="ticket-tear mt-1" style={{ ["--notch-color" as string]: "var(--color-ink)" }} />
