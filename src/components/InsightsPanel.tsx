@@ -12,7 +12,7 @@ import type { Outlet } from "@/lib/outlets";
 
 type Insight = {
   summary: string;
-  counts: { new: number; in_progress: number; resolved: number };
+  counts: { new: number; resolved: number };
   generated_at: string;
 };
 
@@ -22,7 +22,7 @@ export function InsightsPanel({
   outlets,
   onGenerated,
 }: {
-  counts: { new: number; in_progress: number; resolved: number };
+  counts: { new: number; resolved: number };
   complaints: Complaint[];
   outlets: Outlet[];
   onGenerated?: () => void;
@@ -76,31 +76,12 @@ export function InsightsPanel({
         </button>
       </div>
 
-      <div className="mb-4 grid grid-cols-3 gap-3">
-        <div className="rounded-[2px] border border-rail-line px-3 py-2.5 text-center">
-          <p className="font-display text-2xl text-chili">{counts.new}</p>
-          <p className="font-body text-[10px] uppercase tracking-wider text-muted">New</p>
-        </div>
-        <div className="rounded-[2px] border border-rail-line px-3 py-2.5 text-center">
-          <p className="font-display text-2xl text-turmeric">{counts.in_progress}</p>
-          <p className="font-body text-[10px] uppercase tracking-wider text-muted">In progress</p>
-        </div>
-        <div className="rounded-[2px] border border-rail-line px-3 py-2.5 text-center">
-          <p className="font-display text-2xl text-pandan">{counts.resolved}</p>
-          <p className="font-body text-[10px] uppercase tracking-wider text-muted">Resolved</p>
-        </div>
-      </div>
-
-      <RatingsCharts complaints={complaints} outlets={outlets} />
-
-      <DetailedBreakdown complaints={complaints} />
-
       {error && <p className="mb-2 font-body text-[12px] text-chili">{error}</p>}
 
       {loading ? (
-        <p className="font-body text-[12px] text-muted">Loading…</p>
+        <p className="mb-4 font-body text-[12px] text-muted">Loading…</p>
       ) : insight ? (
-        <div>
+        <div className="mb-4">
           <p className="whitespace-pre-line font-body text-[13px] leading-relaxed text-cream/90">
             {insight.summary}
           </p>
@@ -109,11 +90,26 @@ export function InsightsPanel({
           </p>
         </div>
       ) : (
-        <p className="font-body text-[12px] text-muted">
+        <p className="mb-4 font-body text-[12px] text-muted">
           No AI summary yet. Click &ldquo;Generate summary&rdquo; to get a priority briefing and
           red/yellow/green labels on every ticket below.
         </p>
       )}
+
+      <div className="mb-4 grid grid-cols-2 gap-3">
+        <div className="rounded-[2px] border border-rail-line px-3 py-2.5 text-center">
+          <p className="font-display text-2xl text-chili">{counts.new}</p>
+          <p className="font-body text-[10px] uppercase tracking-wider text-muted">New</p>
+        </div>
+        <div className="rounded-[2px] border border-rail-line px-3 py-2.5 text-center">
+          <p className="font-display text-2xl text-pandan">{counts.resolved}</p>
+          <p className="font-body text-[10px] uppercase tracking-wider text-muted">Checked</p>
+        </div>
+      </div>
+
+      <RatingsCharts complaints={complaints} outlets={outlets} />
+
+      <DetailedBreakdown complaints={complaints} />
 
       <BossFeedbackPanel complaints={complaints} outlets={outlets} />
     </div>

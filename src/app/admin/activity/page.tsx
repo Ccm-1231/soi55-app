@@ -18,6 +18,7 @@ const ACTION_LABEL: Record<string, string> = {
   revert_status: "Reverted ticket",
   action_plan_saved: "Saved action plan",
   insight_generated: "Generated AI insight",
+  delete_review: "Deleted review",
 };
 
 function describe(row: ActivityRow): string {

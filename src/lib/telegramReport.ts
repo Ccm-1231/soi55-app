@@ -59,8 +59,7 @@ export function buildOutletReport(outlet: Outlet, complaints: Complaint[]): stri
   const overall = average(overallVals);
 
   const newCount = atOutlet.filter((c) => c.status === "new").length;
-  const inProgressCount = atOutlet.filter((c) => c.status === "in_progress").length;
-  const resolvedCount = atOutlet.filter((c) => c.status === "resolved").length;
+  const checkedCount = atOutlet.filter((c) => c.status !== "new").length;
 
   const lines = [
     `📍 ${outlet.name}`,
@@ -68,7 +67,7 @@ export function buildOutletReport(outlet: Outlet, complaints: Complaint[]): stri
     overall !== null
       ? `Avg rating: ${overall.toFixed(1)}/5 (Food ${food?.toFixed(1)} · Service ${service?.toFixed(1)} · Value ${value?.toFixed(1)})`
       : "Avg rating: no ratings yet",
-    `Tickets: ${newCount} new · ${inProgressCount} in progress · ${resolvedCount} resolved`,
+    `Tickets: ${newCount} new · ${checkedCount} checked`,
   ];
   return lines.join("\n");
 }

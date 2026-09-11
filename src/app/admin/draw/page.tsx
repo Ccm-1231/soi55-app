@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import { rowToComplaint, type ComplaintRow } from "@/lib/supabase/mappers";
 import type { Complaint } from "@/lib/types";
 import { normalizedMyPhone } from "@/lib/reviewGoal";
+import { playDrawTick, playDrawFanfare, playTestTone } from "@/lib/sound";
+import { monthLabel } from "@/lib/time";
+import { MultiSelectDropdown } from "@/components/MultiSelectDropdown";
 
 type Entry = {
   phone: string;
@@ -18,19 +21,24 @@ function maskPhone(phone: string): string {
   return `${phone.slice(0, 4)}-***-${phone.slice(-2)}`;
 }
 
-const SHUFFLE_DURATION_MS = 3200;
+const SHUFFLE_DURATION_MS = 6000;
 const SHUFFLE_START_DELAY = 60;
-const SHUFFLE_END_DELAY = 400;
+const SHUFFLE_END_DELAY = 450;
 
 export default function LuckyDrawPage() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [monthFilters, setMonthFilters] = useState<string[]>([]);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [spinning, setSpinning] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [winner, setWinner] = useState<Entry | null>(null);
+  const [muted, setMuted] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mutedRef = useRef(muted);
+  useEffect(() => {
+    mutedRef.current = muted;
+  }, [muted]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -58,7 +66,11 @@ export default function LuckyDrawPage() {
   const allEligible = useMemo(() => {
     const seen = new Map<string, Entry>();
     for (const c of complaints) {
-      if (monthFilter !== "all" && !c.submittedAt.startsWith(monthFilter)) continue;
+      if (
+        monthFilters.length > 0 &&
+        !monthFilters.some((m) => c.submittedAt.startsWith(m))
+      )
+        continue;
       const phone = normalizedMyPhone(c.guestContact);
       if (!phone || seen.has(phone)) continue;
       seen.set(phone, {
@@ -69,18 +81,27 @@ export default function LuckyDrawPage() {
       });
     }
     return [...seen.values()];
-  }, [complaints, monthFilter]);
+  }, [complaints, monthFilters]);
 
   const pool = useMemo(
     () => allEligible.filter((e) => !excluded.has(e.phone)),
     [allEligible, excluded]
   );
 
-  function changeMonth(value: string) {
-    setMonthFilter(value);
+  function resetDrawState() {
     setExcluded(new Set());
     setWinner(null);
     setDisplayName(null);
+  }
+
+  function toggleMonth(m: string) {
+    setMonthFilters((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
+    resetDrawState();
+  }
+
+  function clearMonths() {
+    setMonthFilters([]);
+    resetDrawState();
   }
 
   function startDraw() {
@@ -102,12 +123,14 @@ export default function LuckyDrawPage() {
         setDisplayName(winnerEntry.name);
         setWinner(winnerEntry);
         setSpinning(false);
+        if (!mutedRef.current) playDrawFanfare();
         return;
       }
       const progress = elapsed / SHUFFLE_DURATION_MS;
       const delay = SHUFFLE_START_DELAY + (SHUFFLE_END_DELAY - SHUFFLE_START_DELAY) * progress * progress;
       const random = effectivePool[Math.floor(Math.random() * effectivePool.length)];
       setDisplayName(random.name);
+      if (!mutedRef.current) playDrawTick();
       timeoutRef.current = setTimeout(tick, delay);
     }
     tick();
@@ -124,18 +147,13 @@ export default function LuckyDrawPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5">
-        <select
-          value={monthFilter}
-          onChange={(e) => changeMonth(e.target.value)}
-          className="rounded-[2px] border border-rail-line bg-rail px-3 py-2 font-body text-[12px] uppercase tracking-wide text-cream focus:outline-none focus:ring-2 focus:ring-chili/40"
-        >
-          <option value="all">All time</option>
-          {months.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
+        <MultiSelectDropdown
+          label="Month"
+          options={months.map((m) => ({ value: m, label: monthLabel(m) }))}
+          selected={monthFilters}
+          onToggle={toggleMonth}
+          onClear={clearMonths}
+        />
         <span className="font-body text-[12px] text-muted">
           {loading ? "Loading…" : `${pool.length} eligible ${pool.length === 1 ? "entry" : "entries"}`}
         </span>
@@ -171,6 +189,22 @@ export default function LuckyDrawPage() {
           className="rounded-[2px] bg-chili px-5 py-2.5 font-body text-[13px] font-bold uppercase tracking-wider text-cream transition-colors hover:bg-chili-dim disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         >
           {spinning ? "Drawing…" : winner ? "Draw again" : "Start draw"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMuted((v) => !v)}
+          aria-pressed={muted}
+          title={muted ? "Unmute draw sounds" : "Mute draw sounds"}
+          className="rounded-[2px] border border-rail-line px-3.5 py-2.5 font-body text-[13px] text-muted transition-colors hover:text-cream cursor-pointer"
+        >
+          {muted ? "🔇" : "🔊"}
+        </button>
+        <button
+          type="button"
+          onClick={() => playTestTone()}
+          className="rounded-[2px] border border-rail-line px-3.5 py-2.5 font-body text-[12px] text-muted transition-colors hover:text-cream cursor-pointer"
+        >
+          Test sound
         </button>
         {excluded.size > 0 && (
           <button

@@ -12,14 +12,22 @@ import { InsightsPanel } from "@/components/InsightsPanel";
 import { MonthlyGoalStrip } from "@/components/MonthlyGoalStrip";
 import { DownloadButton } from "@/components/DownloadButton";
 import { ChangePasswordButton } from "@/components/ChangePasswordButton";
-import { canManage, roleOf } from "@/lib/roles";
+import { FilterDropdown } from "@/components/FilterDropdown";
+import { MultiSelectDropdown } from "@/components/MultiSelectDropdown";
+import { canManage, roleOf, type StaffRole } from "@/lib/roles";
 import { actorLabelFor, logActivity } from "@/lib/activity";
+import { monthKey, monthLabel } from "@/lib/time";
 
-const COLUMNS: { status: ComplaintStatus; title: string; accent: string }[] = [
-  { status: "new", title: "New", accent: "text-chili" },
-  { status: "in_progress", title: "In progress", accent: "text-turmeric" },
-  { status: "resolved", title: "Resolved", accent: "text-pandan" },
+type BoardColumnKey = "new" | "checked";
+
+const COLUMNS: { key: BoardColumnKey; title: string; accent: string }[] = [
+  { key: "new", title: "New", accent: "text-chili" },
+  { key: "checked", title: "Checked", accent: "text-pandan" },
 ];
+
+function columnOf(c: Complaint): BoardColumnKey {
+  return c.status === "new" ? "new" : "checked";
+}
 
 const PRIORITY_RANK: Record<string, number> = { red: 0, yellow: 1, green: 2 };
 function byPriority(a: Complaint, b: Complaint): number {
@@ -28,14 +36,23 @@ function byPriority(a: Complaint, b: Complaint): number {
   return rankA - rankB;
 }
 
+function byDayDesc(a: Complaint, b: Complaint): number {
+  return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+}
+
+function byDayAsc(a: Complaint, b: Complaint): number {
+  return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
+}
+
+type SortMode = "priority" | "location" | "day_desc" | "day_asc";
+
 const NEXT_STATUS: Partial<Record<ComplaintStatus, ComplaintStatus>> = {
-  new: "in_progress",
-  in_progress: "resolved",
+  new: "resolved",
 };
 
 const PREV_STATUS: Partial<Record<ComplaintStatus, ComplaintStatus>> = {
+  resolved: "new",
   in_progress: "new",
-  resolved: "in_progress",
 };
 
 export default function BoardPage() {
@@ -43,10 +60,14 @@ export default function BoardPage() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [locationFilters, setLocationFilters] = useState<string[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>("priority");
   const [showManageLink, setShowManageLink] = useState(false);
+  const [role, setRole] = useState<StaffRole>("user");
   const [actorLabel, setActorLabel] = useState("unknown");
   const [activeTab, setActiveTab] = useState<"dashboard" | "board">("dashboard");
+  const isAdmin = role === "admin";
 
   useEffect(() => {
     const supabase = createClient();
@@ -57,8 +78,10 @@ export default function BoardPage() {
     ]).then(([complaintsRes, outletsRes, { data: userRes }]) => {
       setComplaints(((complaintsRes.data as ComplaintRow[] | null) ?? []).map(rowToComplaint));
       setOutlets((outletsRes.data as Outlet[] | null) ?? []);
-      const canView = canManage(roleOf(userRes.user?.app_metadata));
+      const userRole = roleOf(userRes.user?.app_metadata);
+      const canView = canManage(userRole);
       setShowManageLink(canView);
+      setRole(userRole);
       if (!canView) setActiveTab("board");
       setActorLabel(actorLabelFor(userRes.user));
       setLoading(false);
@@ -74,19 +97,50 @@ export default function BoardPage() {
     setComplaints(((data as ComplaintRow[] | null) ?? []).map(rowToComplaint));
   }
 
+  const monthOptions = useMemo(() => {
+    const keys = Array.from(new Set(complaints.map((c) => monthKey(c.submittedAt))));
+    return keys.sort().reverse();
+  }, [complaints]);
+
+  // Default to the most recent month until the user explicitly picks one.
+  const effectiveMonth = selectedMonth ?? monthOptions[0] ?? null;
+
+  function toggleLocation(slug: string) {
+    setLocationFilters((prev) =>
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
+    );
+  }
+
+  const outletNameOf = useMemo(() => {
+    const map = new Map(outlets.map((o) => [o.slug, o.name]));
+    return (slug: string) => map.get(slug) ?? slug;
+  }, [outlets]);
+
+  function byLocation(a: Complaint, b: Complaint): number {
+    return outletNameOf(a.locationSlug).localeCompare(outletNameOf(b.locationSlug));
+  }
+
+  const sortComparator =
+    sortMode === "priority"
+      ? byPriority
+      : sortMode === "location"
+        ? byLocation
+        : sortMode === "day_desc"
+          ? byDayDesc
+          : byDayAsc;
+
   const visible = useMemo(
     () =>
-      locationFilter === "all"
-        ? complaints
-        : complaints.filter((c) => c.locationSlug === locationFilter),
-    [complaints, locationFilter]
+      complaints
+        .filter((c) => locationFilters.length === 0 || locationFilters.includes(c.locationSlug))
+        .filter((c) => effectiveMonth === null || monthKey(c.submittedAt) === effectiveMonth),
+    [complaints, locationFilters, effectiveMonth]
   );
 
   const totalCounts = useMemo(
     () => ({
       new: complaints.filter((c) => c.status === "new").length,
-      in_progress: complaints.filter((c) => c.status === "in_progress").length,
-      resolved: complaints.filter((c) => c.status === "resolved").length,
+      resolved: complaints.filter((c) => c.status !== "new").length,
     }),
     [complaints]
   );
@@ -96,28 +150,17 @@ export default function BoardPage() {
     const next = current && NEXT_STATUS[current.status];
     if (!next) return;
 
-    const now = new Date().toISOString();
-    const resolvedAt = next === "resolved" ? now : current?.resolvedAt;
-    const pickedUpBy = next === "in_progress" ? actorLabel : current?.pickedUpBy;
-    const pickedUpAt = next === "in_progress" ? now : current?.pickedUpAt;
-    const resolvedBy = next === "resolved" ? actorLabel : current?.resolvedBy;
+    const resolvedAt = new Date().toISOString();
+    const resolvedBy = actorLabel;
 
     setComplaints((prev) =>
-      prev.map((c) =>
-        c.id === id ? { ...c, status: next, resolvedAt, pickedUpBy, pickedUpAt, resolvedBy } : c
-      )
+      prev.map((c) => (c.id === id ? { ...c, status: next, resolvedAt, resolvedBy } : c))
     );
 
     const supabase = createClient();
     await supabase
       .from("complaints")
-      .update({
-        status: next,
-        resolved_at: resolvedAt ?? null,
-        picked_up_by: pickedUpBy ?? null,
-        picked_up_at: pickedUpAt ?? null,
-        resolved_by: resolvedBy ?? null,
-      })
+      .update({ status: next, resolved_at: resolvedAt, resolved_by: resolvedBy })
       .eq("ticket_number", id);
 
     logActivity(supabase, actorLabel, "advance_status", id, {
@@ -131,14 +174,18 @@ export default function BoardPage() {
     const prev = current && PREV_STATUS[current.status];
     if (!prev) return;
 
-    const resolvedAt = prev === "resolved" ? current?.resolvedAt : undefined;
-    const pickedUpBy = current?.status === "in_progress" ? undefined : current?.pickedUpBy;
-    const pickedUpAt = current?.status === "in_progress" ? undefined : current?.pickedUpAt;
-    const resolvedBy = current?.status === "resolved" ? undefined : current?.resolvedBy;
-
     setComplaints((prevList) =>
       prevList.map((c) =>
-        c.id === id ? { ...c, status: prev, resolvedAt, pickedUpBy, pickedUpAt, resolvedBy } : c
+        c.id === id
+          ? {
+              ...c,
+              status: prev,
+              resolvedAt: undefined,
+              resolvedBy: undefined,
+              pickedUpAt: undefined,
+              pickedUpBy: undefined,
+            }
+          : c
       )
     );
 
@@ -147,10 +194,10 @@ export default function BoardPage() {
       .from("complaints")
       .update({
         status: prev,
-        resolved_at: resolvedAt ?? null,
-        picked_up_by: pickedUpBy ?? null,
-        picked_up_at: pickedUpAt ?? null,
-        resolved_by: resolvedBy ?? null,
+        resolved_at: null,
+        resolved_by: null,
+        picked_up_at: null,
+        picked_up_by: null,
       })
       .eq("ticket_number", id);
 
@@ -158,6 +205,38 @@ export default function BoardPage() {
       from: current?.status,
       to: prev,
     });
+  }
+
+  async function deleteTickets(ticketNumbers: string[]) {
+    const res = await fetch("/api/admin/complaints", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticketNumbers }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      alert(body.error ?? "Failed to delete");
+      return;
+    }
+    setComplaints((prev) => prev.filter((c) => !ticketNumbers.includes(c.id)));
+  }
+
+  function deleteOne(id: string) {
+    if (!window.confirm(`Delete ticket #${id}? This can't be undone.`)) return;
+    deleteTickets([id]);
+  }
+
+  function deleteVisible() {
+    const ticketNumbers = visible.map((c) => c.id);
+    if (ticketNumbers.length === 0) return;
+    const label = effectiveMonth ? monthLabel(effectiveMonth) : "the selected period";
+    if (
+      !window.confirm(
+        `Delete all ${ticketNumbers.length} reviews shown for ${label}? This can't be undone.`
+      )
+    )
+      return;
+    deleteTickets(ticketNumbers);
   }
 
   function actionPlanSaved(id: string, actionPlan: string, updatedAt: string) {
@@ -238,26 +317,52 @@ export default function BoardPage() {
       {!loading && activeTab === "board" && (
         <OutletsProvider outlets={outlets}>
           <main className="flex-1 px-5 py-6 sm:px-8">
-            <div className="mb-5 flex flex-wrap items-center gap-2.5">
-              <select
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                className="rounded-[2px] border border-rail-line bg-rail px-3 py-2 font-body text-[12px] uppercase tracking-wide text-cream focus:outline-none focus:ring-2 focus:ring-chili/40"
-              >
-                <option value="all">All locations</option>
-                {outlets.map((l) => (
-                  <option key={l.slug} value={l.slug}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-              <DownloadButton complaints={visible} outlets={outlets} />
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                {monthOptions.length > 0 && (
+                  <FilterDropdown
+                    label="Month"
+                    options={monthOptions.map((k) => ({ value: k, label: monthLabel(k) }))}
+                    value={effectiveMonth ?? monthOptions[0]}
+                    onChange={setSelectedMonth}
+                  />
+                )}
+                <MultiSelectDropdown
+                  label="Locations"
+                  options={outlets.map((o) => ({ value: o.slug, label: o.name }))}
+                  selected={locationFilters}
+                  onToggle={toggleLocation}
+                  onClear={() => setLocationFilters([])}
+                />
+                <FilterDropdown
+                  label="Sort by"
+                  options={[
+                    { value: "priority", label: "Priority" },
+                    { value: "location", label: "Location" },
+                    { value: "day_desc", label: "Day (descending)" },
+                    { value: "day_asc", label: "Day (ascending)" },
+                  ]}
+                  value={sortMode}
+                  onChange={setSortMode}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {isAdmin && visible.length > 0 && (
+                  <button
+                    onClick={deleteVisible}
+                    className="rounded-[2px] border border-chili/40 px-4 py-2 font-body text-[12px] font-semibold uppercase tracking-wide text-chili transition-colors hover:bg-chili/10 cursor-pointer"
+                  >
+                    Delete {visible.length} shown
+                  </button>
+                )}
+                <DownloadButton complaints={visible} outlets={outlets} />
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {COLUMNS.map((col) => {
-                const items = visible.filter((c) => c.status === col.status).sort(byPriority);
+                const items = visible.filter((c) => columnOf(c) === col.key).sort(sortComparator);
                 return (
-                  <section key={col.status} className="flex flex-col gap-3">
+                  <section key={col.key} className="flex flex-col gap-3">
                     <div className="flex items-baseline gap-2 border-b border-rail-line pb-2">
                       <h2 className={`font-display text-xl uppercase tracking-wide ${col.accent}`}>
                         {col.title}
@@ -277,6 +382,7 @@ export default function BoardPage() {
                           onAdvance={advance}
                           onRevert={revert}
                           onActionPlanSaved={actionPlanSaved}
+                          onDelete={isAdmin ? deleteOne : undefined}
                         />
                       ))}
                     </div>

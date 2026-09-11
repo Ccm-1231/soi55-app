@@ -61,7 +61,7 @@ export function RatingsCharts({
   const outletActionCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const c of complaints) {
-      if (c.status !== "resolved") {
+      if (c.status === "new") {
         counts.set(c.locationSlug, (counts.get(c.locationSlug) ?? 0) + 1);
       }
     }

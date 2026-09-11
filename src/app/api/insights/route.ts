@@ -43,8 +43,7 @@ export async function POST() {
 
   const counts = {
     new: rows.filter((c) => c.status === "new").length,
-    in_progress: rows.filter((c) => c.status === "in_progress").length,
-    resolved: rows.filter((c) => c.status === "resolved").length,
+    resolved: rows.filter((c) => c.status !== "new").length,
   };
 
   if (rows.length === 0) {
@@ -66,15 +65,15 @@ export async function POST() {
     ]
       .filter(Boolean)
       .join(", ");
-    return `- #${c.ticket_number} [${c.status}] ${outlet}${ratings ? ` (${ratings})` : ""}: "${c.description}"`;
+    const statusTag = c.status === "new" ? "new" : "checked";
+    return `- #${c.ticket_number} [${statusTag}] ${outlet}${ratings ? ` (${ratings})` : ""}: "${c.description}"`;
   });
 
   const prompt = `You are analyzing customer feedback for a Thai restaurant chain called Soi 55 with multiple outlets.
 
 Here is the current ticket status count:
 - New: ${counts.new}
-- In progress: ${counts.in_progress}
-- Resolved: ${counts.resolved}
+- Checked: ${counts.resolved}
 
 Here are the individual feedback tickets (most recent first, ticket number, status in brackets, outlet, star ratings if given, then the guest's comment):
 ${lines.join("\n")}

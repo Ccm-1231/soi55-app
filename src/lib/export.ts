@@ -17,6 +17,45 @@ function outletNameFor(slug: string, outlets: { slug: string; name: string }[]):
   return outlets.find((o) => o.slug === slug)?.name ?? slug;
 }
 
+/**
+ * Phone numbers pasted from a phone's contacts app or WhatsApp often carry invisible Unicode
+ * bidi-direction marks and a non-breaking hyphen. jsPDF's built-in fonts can't measure or render
+ * those characters, which corrupts that cell's line-wrapping (letters end up spaced one-per-line).
+ * Strip the invisible marks and normalize dash variants before handing text to jsPDF.
+ */
+// Built from codepoints (not literal characters) so this file has no invisible/ambiguous glyphs in it.
+function codepointRange(start: number, end: number): string {
+  let chars = "";
+  for (let cp = start; cp <= end; cp++) chars += String.fromCodePoint(cp);
+  return chars;
+}
+
+// Zero-width spaces/joiners (200B-200F), bidi embedding/override marks (202A-202E),
+// bidi isolate marks (2066-2069), and the BOM/zero-width-no-break-space (FEFF).
+const INVISIBLE_FORMATTING_CHARS = new RegExp(
+  `[${codepointRange(0x200b, 0x200f)}${codepointRange(0x202a, 0x202e)}${codepointRange(0x2066, 0x2069)}${codepointRange(0xfeff, 0xfeff)}]`,
+  "g"
+);
+// Hyphen/non-breaking-hyphen/figure-dash/en-dash/em-dash/horizontal-bar (2010-2015).
+const DASH_VARIANTS = new RegExp(`[${codepointRange(0x2010, 0x2015)}]`, "g");
+
+// Emoji and other pictographic/symbol characters: jsPDF's built-in fonts only support the
+// WinAnsi (Latin-1-ish) subset, so anything in these ranges renders as garbled mojibake
+// instead of the intended glyph, and can corrupt the rest of the cell's text alongside it.
+// Arrows, misc technical/symbols, dingbats (2190-2BFF), variation selectors (FE00-FE0F),
+// and the whole supplementary-plane block used by virtually all emoji (1F000-10FFFF).
+const UNRENDERABLE_SYMBOLS = new RegExp(
+  "[\\u{2190}-\\u{2BFF}\\u{FE00}-\\u{FE0F}\\u{1F000}-\\u{10FFFF}]",
+  "gu"
+);
+
+function sanitizeForPdf(value: string): string {
+  return value
+    .replace(UNRENDERABLE_SYMBOLS, "")
+    .replace(INVISIBLE_FORMATTING_CHARS, "")
+    .replace(DASH_VARIANTS, "-");
+}
+
 const PRIORITY_RANK: Record<string, number> = { red: 0, yellow: 1, green: 2 };
 
 /** High -> medium -> low priority first; unclassified tickets sort last. */
@@ -108,9 +147,9 @@ export async function exportToPdf(
     STATUS_LABEL[c.status],
     c.priority ? PRIORITY_LABEL[c.priority] : "-",
     String(daysSince(c.submittedAt)),
-    [c.guestName, c.guestContact].filter(Boolean).join(" · ") || "-",
-    c.description,
-    c.actionPlan ?? "",
+    sanitizeForPdf([c.guestName, c.guestContact].filter(Boolean).join(" · ")) || "-",
+    sanitizeForPdf(c.description),
+    sanitizeForPdf(c.actionPlan ?? ""),
   ]);
 
   autoTable(doc, {

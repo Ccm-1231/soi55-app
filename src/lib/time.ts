@@ -21,3 +21,15 @@ export function tiltForId(id: string): number {
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
   return (hash % 7) / 10 - 0.3; // range roughly -0.3deg to 0.3deg
 }
+
+/** "YYYY-MM" bucket key for a submission timestamp, in browser-local time. */
+export function monthKey(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** "July 2026" display label for a monthKey. */
+export function monthLabel(key: string): string {
+  const [year, month] = key.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}

@@ -10,7 +10,7 @@ import { TimeAgo } from "./TimeAgo";
 
 const STATUS_ACCENT: Record<Complaint["status"], string> = {
   new: "border-l-chili",
-  in_progress: "border-l-turmeric",
+  in_progress: "border-l-pandan",
   resolved: "border-l-pandan",
 };
 
@@ -34,19 +34,23 @@ export function TicketCard({
   onAdvance,
   onRevert,
   onActionPlanSaved,
+  onDelete,
   notchColor = "var(--color-rail)",
 }: {
   complaint: Complaint;
   onAdvance?: (id: string) => void;
   onRevert?: (id: string) => void;
   onActionPlanSaved?: (id: string, actionPlan: string, updatedAt: string) => void;
+  onDelete?: (id: string) => void;
   notchColor?: string;
 }) {
   const tilt = tiltForId(complaint.id);
   const [showDetail, setShowDetail] = useState(false);
   const outletName = useOutletName(complaint.locationSlug);
   const days = daysSince(complaint.submittedAt);
-  const overdue = complaint.status !== "resolved" && days >= 2;
+  const overdue = complaint.status === "new" && days >= 2;
+  const checkedAt = complaint.resolvedAt ?? complaint.pickedUpAt;
+  const checkedBy = complaint.resolvedBy ?? complaint.pickedUpBy;
 
   return (
     <>
@@ -70,16 +74,26 @@ export function TicketCard({
             {outletName}
           </span>
         </div>
-        <div className="flex flex-col items-end gap-0.5 pt-0.5">
-          <span className="font-body text-[11px] text-ink-text/50 whitespace-nowrap">
-            <TimeAgo iso={complaint.submittedAt} />
-          </span>
-          <span
-            className={`whitespace-nowrap rounded-full px-1.5 py-0.5 font-body text-[10px] ${
-              overdue ? "bg-red-600 font-semibold text-white" : "bg-ink-text/10 text-ink-text/55"
-            }`}
-          >
-            Day {days}
+        <div className="flex flex-col items-end gap-1 pt-0.5">
+          {complaint.status === "new" && onAdvance && (
+            <button
+              onClick={() => onAdvance(complaint.id)}
+              className="rounded-[2px] bg-chili px-2.5 py-1 font-body text-[10px] font-semibold uppercase tracking-wider text-cream transition-colors hover:bg-chili-dim focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-chili cursor-pointer"
+            >
+              Mark checked
+            </button>
+          )}
+          <span className="flex items-center gap-1.5">
+            <span className="font-body text-[11px] text-ink-text/50 whitespace-nowrap">
+              <TimeAgo iso={complaint.submittedAt} />
+            </span>
+            <span
+              className={`whitespace-nowrap rounded-full px-1.5 py-0.5 font-body text-[10px] ${
+                overdue ? "bg-red-600 font-semibold text-white" : "bg-ink-text/10 text-ink-text/55"
+              }`}
+            >
+              Day {days}
+            </span>
           </span>
         </div>
       </div>
@@ -100,75 +114,51 @@ export function TicketCard({
           </p>
         )}
 
-        <button
-          type="button"
-          onClick={() => setShowDetail(true)}
-          className="mt-2 font-body text-[11px] font-medium text-chili hover:underline cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-chili"
-        >
-          View full details →
-        </button>
-
-        <div className="mt-3">
-          {complaint.status === "new" && onAdvance && (
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setShowDetail(true)}
+            className="font-body text-[11px] font-medium text-chili hover:underline cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-chili"
+          >
+            View full details →
+          </button>
+          {onDelete && (
             <button
-              onClick={() => onAdvance(complaint.id)}
-              className="w-full rounded-[2px] bg-chili px-3 py-1.5 font-body text-[11px] font-medium uppercase tracking-wider text-cream transition-colors hover:bg-chili-dim focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-chili cursor-pointer"
+              type="button"
+              onClick={() => onDelete(complaint.id)}
+              aria-label="Delete ticket"
+              title="Delete ticket"
+              className="font-body text-[13px] text-ink-text/35 transition-colors hover:text-chili cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-chili"
             >
-              Start working on it
+              🗑
             </button>
           )}
-          {complaint.status === "in_progress" && onAdvance && (
-            <>
-              {complaint.pickedUpBy && (
-                <p className="mb-1.5 font-body text-[11px] text-ink-text/55">
-                  Picked up by <span className="font-medium text-ink-text/80">{complaint.pickedUpBy}</span>
+        </div>
+
+        {complaint.status !== "new" && (
+          <div className="mt-3 flex items-center justify-between gap-1.5">
+            <div>
+              <p className="font-body text-[11px] text-pandan-dim">
+                ✓ Checked {checkedAt ? <TimeAgo iso={checkedAt} /> : ""}
+              </p>
+              {checkedBy && (
+                <p className="font-body text-[11px] text-ink-text/55">
+                  by <span className="font-medium text-ink-text/80">{checkedBy}</span>
                 </p>
-              )}
-              <div className="flex gap-1.5">
-                {onRevert && (
-                  <button
-                    onClick={() => onRevert(complaint.id)}
-                    aria-label="Move back to New"
-                    title="Move back to New"
-                    className={UNDO_BUTTON_CLASS}
-                  >
-                    ↩
-                  </button>
-                )}
-                <button
-                  onClick={() => onAdvance(complaint.id)}
-                  className="flex-1 rounded-[2px] bg-pandan px-3 py-1.5 font-body text-[11px] font-medium uppercase tracking-wider text-cream transition-colors hover:bg-pandan-dim focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pandan cursor-pointer"
-                >
-                  Mark resolved
-                </button>
-              </div>
-            </>
-          )}
-          {complaint.status === "resolved" && (
-            <div className="flex items-center justify-between gap-1.5">
-              <div>
-                <p className="font-body text-[11px] text-pandan-dim">
-                  ✓ Resolved {complaint.resolvedAt ? <TimeAgo iso={complaint.resolvedAt} /> : ""}
-                </p>
-                {complaint.resolvedBy && (
-                  <p className="font-body text-[11px] text-ink-text/55">
-                    by <span className="font-medium text-ink-text/80">{complaint.resolvedBy}</span>
-                  </p>
-                )}
-              </div>
-              {onRevert && (
-                <button
-                  onClick={() => onRevert(complaint.id)}
-                  aria-label="Move back to In progress"
-                  title="Move back to In progress"
-                  className={UNDO_BUTTON_CLASS}
-                >
-                  ↩
-                </button>
               )}
             </div>
-          )}
-        </div>
+            {onRevert && (
+              <button
+                onClick={() => onRevert(complaint.id)}
+                aria-label="Move back to New"
+                title="Move back to New"
+                className={UNDO_BUTTON_CLASS}
+              >
+                ↩
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
     {showDetail && (

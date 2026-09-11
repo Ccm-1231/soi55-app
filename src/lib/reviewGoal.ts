@@ -1,4 +1,5 @@
 import type { Complaint } from "@/lib/types";
+import { monthKey } from "@/lib/time";
 
 export const MONTHLY_TARGET = 150;
 
@@ -16,23 +17,25 @@ export function normalizedMyPhone(raw: string | null | undefined): string | null
   return digits;
 }
 
-function isThisMonth(iso: string): boolean {
-  const d = new Date(iso);
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-}
-
 /**
  * Only submissions with a valid Malaysian mobile number count toward the
  * monthly target, and each phone number counts once per outlet per month --
  * otherwise staff could hit the target by scanning themselves repeatedly.
  */
-export function countedPhonesThisMonth(outletSlug: string, complaints: Complaint[]): Set<string> {
+export function countedPhonesForMonth(
+  outletSlug: string,
+  complaints: Complaint[],
+  targetMonthKey: string
+): Set<string> {
   const seen = new Set<string>();
   for (const c of complaints) {
-    if (c.locationSlug !== outletSlug || !isThisMonth(c.submittedAt)) continue;
+    if (c.locationSlug !== outletSlug || monthKey(c.submittedAt) !== targetMonthKey) continue;
     const phone = normalizedMyPhone(c.guestContact);
     if (phone) seen.add(phone);
   }
   return seen;
+}
+
+export function countedPhonesThisMonth(outletSlug: string, complaints: Complaint[]): Set<string> {
+  return countedPhonesForMonth(outletSlug, complaints, monthKey(new Date().toISOString()));
 }
