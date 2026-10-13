@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Complaint } from "@/lib/types";
 import type { Outlet } from "@/lib/outlets";
-import { MONTHLY_TARGET, countedPhonesForMonth } from "@/lib/reviewGoal";
+import { MONTHLY_TARGET, countedComplaintsForMonth } from "@/lib/reviewGoal";
 import { monthKey, monthLabel } from "@/lib/time";
 import { FilterDropdown } from "@/components/FilterDropdown";
 
@@ -27,7 +27,7 @@ export function MonthlyGoalStrip({
 
   const rows = useMemo(() => {
     return outlets
-      .map((o) => ({ outlet: o, count: countedPhonesForMonth(o.slug, complaints, effectiveMonth).size }))
+      .map((o) => ({ outlet: o, count: countedComplaintsForMonth(o.slug, complaints, effectiveMonth) }))
       .sort((a, b) => a.count - b.count || a.outlet.name.localeCompare(b.outlet.name));
   }, [complaints, outlets, effectiveMonth]);
 
@@ -46,7 +46,7 @@ export function MonthlyGoalStrip({
           }
         />
         <p className="font-body text-[11px] uppercase tracking-wider text-muted">
-          target {MONTHLY_TARGET}/outlet · valid MY phone number only, one per customer
+          target {MONTHLY_TARGET}/outlet · all reviews counted
         </p>
       </div>
       <div className="flex flex-wrap gap-2">

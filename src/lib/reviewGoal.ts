@@ -36,6 +36,24 @@ export function countedPhonesForMonth(
   return seen;
 }
 
+/**
+ * Count ALL complaints for a given outlet and month, regardless of phone number.
+ * Use this for dashboard tracking where you want to see total review volume.
+ */
+export function countedComplaintsForMonth(
+  outletSlug: string,
+  complaints: Complaint[],
+  targetMonthKey: string
+): number {
+  let count = 0;
+  for (const c of complaints) {
+    if (c.locationSlug === outletSlug && monthKey(c.submittedAt) === targetMonthKey) {
+      count++;
+    }
+  }
+  return count;
+}
+
 export function countedPhonesThisMonth(outletSlug: string, complaints: Complaint[]): Set<string> {
   return countedPhonesForMonth(outletSlug, complaints, monthKey(new Date().toISOString()));
 }
